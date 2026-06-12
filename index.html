@@ -1471,6 +1471,24 @@ async function loadFromFirebase() {
         showNotification('❌ ڈیٹا لوڈ کرنے میں ناکامی', 'error');
     }
 }
+    // ==================== نوٹیفیکیشن کا فنکشن (جو مسنگ تھا) ====================
+function showNotification(message, type = 'success') {
+    const notif = document.getElementById('notification');
+    if (!notif) {
+        // اگر کوڈ میں نوٹیفیکیشن کا ڈیو (Div) نہ ملے تو الرٹ دکھا دے تاکہ کام نہ رکے
+        alert(message);
+        return;
+    }
+    notif.textContent = message;
+    notif.style.background = type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#28a745';
+    notif.style.color = type === 'warning' ? '#333' : 'white';
+    notif.style.display = 'block';
+    
+    setTimeout(() => {
+        notif.style.display = 'none';
+    }, 3000);
+}
+    
 // انٹر کی ایونٹس
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('manualBarcode')?.addEventListener('keypress', e => {
