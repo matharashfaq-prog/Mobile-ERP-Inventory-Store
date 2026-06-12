@@ -1373,8 +1373,7 @@ function clearAllData() {
     updateDashboard();
     showNotification('🗑️ تمام ڈیٹا حذف ہو گیا');
 }
-// ==================== فائر بیس کا نیا کنکشن ====================
-// یہ اسکرپٹس آپ نے ہیڈ (head) میں پہلے ہی ڈال لی ہوں گی، اب یہاں صرف انیشلائزیشن ہے
+// ==================== فائر بیس کلاؤڈ کنکشن اور انیشلائزیشن ====================
 const firebaseConfig = {
   apiKey: "AIzaSyDhgSB1jFbeXRKtlV18c6tp6Z_m6zKHLms",
   authDomain: "mobile-inventory-store.firebaseapp.com",
@@ -1385,23 +1384,21 @@ const firebaseConfig = {
   measurementId: "G-E643SC87CW"
 };
 
-// اگر فائر بیس پہلے سے انیشلائز نہیں ہے تو کریں
+// فائر بیس شروع کریں
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
 
-// ==================== پرانے فنکشنز کی نئی اور محفوظ شکل ====================
-
+// 1. پرانا گوگل شیٹ والا فنکشن (اب یہ فائر بیس پر ڈیٹا بھیجے گا)
 function syncToGoogleSheets() {
-    // ہم نے نام وہی رکھا ہے تاکہ آپ کی ایپ کا کوئی اور حصہ خراب نہ ہو!
     const status = document.getElementById('syncStatus');
     if (status) {
-        status.textContent = '🔄 کلاؤڈ پر محفوظ ہو رہا ہے...';
+        status.textContent = '🔄 کلاؤڈ پر ہم آہنگ ہو رہا ہے...';
         status.className = 'sync-status syncing';
     }
-    
-    // آپ کا موجودہ لاجک جو ڈیٹا نکالتا ہے
+
+    // ایپ کے لوکل اسٹوریج سے ڈیٹا نکالنا
     const targetId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
     const prefix = targetId + '_';
     
@@ -1409,7 +1406,7 @@ function syncToGoogleSheets() {
     const localSales = JSON.parse(localStorage.getItem(prefix + 'sales')) || [];
     const localActivities = JSON.parse(localStorage.getItem(prefix + 'activities')) || [];
 
-    // فائر بیس پر ڈیٹا بھیجنا
+    // فائر بیس کے فائر اسٹور ڈیٹا بیس میں سیدھا پش کرنا
     db.collection("inventory_backups").doc(targetId).set({
         ownerId: targetId,
         products: localProducts,
@@ -1419,24 +1416,34 @@ function syncToGoogleSheets() {
     }, { merge: true })
     .then(() => {
         if (status) {
-            status.textContent = '✅ کلاؤڈ پر ہم آہنگ';
+            status.textContent = '✅ ہم آہنگ';
             status.className = 'sync-status';
         }
-        showNotification('🚀 مبارک ہو! ڈیٹا فائر بیس کلاؤڈ پر محفوظ ہو گیا');
+        showNotification('🚀 ڈیٹا فائر بیس کلاؤڈ پر محفوظ ہو گیا!');
     })
     .catch((error) => {
-        console.error("بیک اپ ایرر:", error);
+        console.error("Firebase Error: ", error);
         if (status) {
             status.textContent = '❌ خرابی آئی';
             status.className = 'sync-status';
         }
-        showNotification('❌ بیک اپ فیل: انٹرنیٹ چیک کریں', 'error');
+        showNotification('❌ بیک اپ فیل: انٹرنیٹ یا رولز چیک کریں', 'error');
     });
 }
 
-// کلاؤڈ سے پرانا ڈیٹا واپس لانے کے لیے ایک نیا فنکشن (یہ بالکل الگ ہے، پرانے کوڈ کو نہیں چھیڑے گا)
+// 2. مین سنک بٹن کا فنکشن (جب آپ Sync Now دبائیں گے تو یہ چلے گا)
+function syncNow() {
+    syncToGoogleSheets();
+}
+
+// 3. پرانی سیٹنگز کو خالی چھوڑ دیں تاکہ ایرر نہ آئے
+function saveSheetSettings() {
+    showNotification('💾 سیٹنگز اب کلاؤڈ پر آٹو مینیجڈ ہیں');
+}
+
+// 4. کلاؤڈ سے پرانا ڈیٹا واپس موبائل ایپ میں لوڈ کرنے کا فنکشن
 async function loadFromFirebase() {
-    if (!confirm('⚠️ کیا آپ کلاؤڈ سے پرانا ڈیٹا لوڈ کرنا چاہتے ہیں؟')) return;
+    if (!confirm('⚠️ کیا آپ کلاؤڈ سے پرانا ڈیٹا لوڈ کرنا چاہتے ہیں؟ موجودہ غیر محفوظ شدہ ڈیٹا بدل جائے گا!')) return;
     
     const targetId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
     const prefix = targetId + '_';
@@ -1449,12 +1456,10 @@ async function loadFromFirebase() {
             localStorage.setItem(prefix + 'sales', JSON.stringify(cloudData.sales || []));
             localStorage.setItem(prefix + 'activities', JSON.stringify(cloudData.activities || []));
             
-            // گلوبل ویری ایبلز اپ ڈیٹ کرنا
             products = cloudData.products || [];
             sales = cloudData.sales || [];
             activities = cloudData.activities || [];
 
-            // آپ کی ایپ کے اپنے فنکشنز کو رن کرنا تاکہ اسکرین اپ ڈیٹ ہو جائے
             renderProducts();
             renderSales();
             updateDashboard();
@@ -1466,19 +1471,6 @@ async function loadFromFirebase() {
         showNotification('❌ ڈیٹا لوڈ کرنے میں ناکامی', 'error');
     }
 }
-// ==================== یوٹیلیٹیز ====================
-function showNotification(message, type = 'success') {
-    const notif = document.getElementById('notification');
-    notif.textContent = message;
-    notif.style.background = type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#28a745';
-    notif.style.color = type === 'warning' ? '#333' : 'white';
-    notif.style.display = 'block';
-    
-    setTimeout(() => {
-        notif.style.display = 'none';
-    }, 3000);
-}
-
 // انٹر کی ایونٹس
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('manualBarcode')?.addEventListener('keypress', e => {
