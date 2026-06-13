@@ -1080,19 +1080,26 @@ function handleScan(barcode) {
     }, 3000);
 }
 
-// 2. نئی پراڈکٹ شامل کرنے یا اسٹاک بڑھانے کا فنکشن (کلاؤڈ محفوظ ورژن)
+// ==================== ۲. نئی پراڈکٹ شامل کرنے یا اسٹاک بڑھانے کا فنکشن (کلاؤڈ فرینڈلی) ====================
 function addProduct() {
-    const barcode = document.getElementById('manualBarcode').value.trim();
-    const name = document.getElementById('manualName').value.trim();
-    const category = document.getElementById('manualCategory').value;
-    const quantity = parseInt(document.getElementById('manualQuantity').value) || 1;
+    const barcodeInput = document.getElementById('manualBarcode');
+    const nameInput = document.getElementById('manualName');
+    const categoryInput = document.getElementById('manualCategory');
+    const quantityInput = document.getElementById('manualQuantity');
+
+    if (!barcodeInput || !nameInput) return;
+
+    const barcode = barcodeInput.value.trim();
+    const name = nameInput.value.trim();
+    const category = categoryInput ? categoryInput.value : 'دیگر';
+    const quantity = parseInt(quantityInput ? quantityInput.value : 1) || 1;
     
     if (!barcode || !name) {
         showNotification('❌ بارکوڈ اور نام ضروری ہیں', 'error');
         return;
     }
 
-    // 🔥 محفوظ لاجک: اگر currentUser نہ بھی ملے تو ایپ کریش نہیں ہوگی اور خودکار طور پر مالک مانے گی
+    // 🔒 نقص نمبر 1 کا حل: اگر currentUser خالی بھی ہو تو ایپ کریش نہیں ہوگی، اسے اونر مانے گی
     const isOwner = !currentUser || currentUser.role === 'owner' || currentUser.role === 'account_owner';
     
     const costPriceInput = document.getElementById('costPrice');
@@ -1109,13 +1116,13 @@ function addProduct() {
         return;
     }
 
-    // کلاؤڈ سے آئے ہوئے ڈیٹا میں بارکوڈ میچ کرنا
-    const existing = products.find(p => String(p.barcode).trim() === String(barcode));
+    // 🎯 نقص نمبر 2 کا حل: دونوں طرف String میں بدل کر میچ کرنا تاکہ نمبر اور ٹیکسٹ کا تضاد ختم ہو
+    const existing = products.find(p => String(p.barcode).trim() === String(barcode).trim());
     
     showNotification('⏳ کلاؤڈ پر ڈیٹا بھیجا جا رہا ہے...', 'warning');
 
     if (existing) {
-        // اگر پہلے سے موجود ہے تو کلاؤڈ پر اپڈیٹ کریں
+        // اگر پراڈکٹ پہلے سے موجود ہے تو کلاؤڈ پر اسٹاک پلس کریں
         const totalQty = (parseInt(existing.quantity) || 0) + quantity;
         const updateData = {
             quantity: totalQty,
@@ -1126,16 +1133,20 @@ function addProduct() {
 
         db.collection("products").doc(barcode).update(updateData)
         .then(() => {
-            showNotification(`✅ "${existing.name}" کلاؤڈ پر اپڈیٹ ہو گیا - کل: ${totalQty}`);
-            if (typeof addActivity === 'function') {
-                addActivity('اسٹاک بڑھایا', `${name} - نئی مقدار: ${totalQty}`);
-            }
+            // لوکل میموری کو فوراً اپڈیٹ کریں تاکہ اسکینر اسی وقت کام کرے
+            existing.quantity = totalQty;
+            existing.salePrice = salePrice;
+            if (isOwner) existing.costPrice = costPrice;
+
+            showNotification(`✅ "${existing.name}" کلاؤڈ پر اپڈیٹ ہو گیا - کل اسٹاک: ${totalQty}`);
+            
             clearAddProductForm();
+            if (typeof renderProducts === 'function') { renderProducts(); }
             if (typeof fetchProductsFromCloud === 'function') { fetchProductsFromCloud(); }
         })
         .catch(error => {
             console.error("Firebase Update Error:", error);
-            showNotification('❌ کلاؤڈ پر اپڈیٹ نہیں ہو سکا', 'error');
+            showNotification('❌ کلاؤڈ پر اسٹاک اپڈیٹ نہیں ہو سکا', 'error');
         });
     } else {
         // اگر بالکل نئی پراڈکٹ ہے تو فائر بیس میں نیا ڈاکومنٹ بنائیں
@@ -1153,161 +1164,65 @@ function addProduct() {
 
         db.collection("products").doc(barcode).set(newProduct)
         .then(() => {
-            showNotification('✅ نیا پراڈکٹ کلاؤڈ پر شامل ہو گیا!');
-            if (typeof addActivity === 'function') {
-                addActivity('نیا پراڈکٹ', `${name} - ${quantity} عدد`);
-            }
+            // لوکل اریے میں فوراً پش کریں
+            products.push(newProduct);
+
+            showNotification('🚀 نیا پراڈکٹ کلاؤڈ پر کامیابی سے شامل ہو گیا!');
+            
             clearAddProductForm();
+            if (typeof renderProducts === 'function') { renderProducts(); }
             if (typeof fetchProductsFromCloud === 'function') { fetchProductsFromCloud(); }
         })
         .catch(error => {
             console.error("Firebase Save Error:", error);
-            showNotification('❌ کلاؤڈ پر سیو نہیں ہو سکا', 'error');
+            showNotification('❌ کلاؤڈ پر نیا پراڈکٹ سیو نہیں ہو سکا', 'error');
         });
     }
 }
 
 // فارم خالی کرنے کا ہیلپر فنکشن
 function clearAddProductForm() {
-    if (document.getElementById('manualBarcode')) document.getElementById('manualBarcode').value = '';
-    if (document.getElementById('manualName')) document.getElementById('manualName').value = '';
-    if (document.getElementById('manualQuantity')) document.getElementById('manualQuantity').value = '1';
-    if (document.getElementById('costPrice')) document.getElementById('costPrice').value = '';
-    if (document.getElementById('salePrice')) document.getElementById('salePrice').value = '';
-    if (document.getElementById('staffSalePrice')) document.getElementById('staffSalePrice').value = '';
-}
-// 3. پراڈکٹس کو اسکرین پر دکھانے کا فنکشن (رینڈر)
-function renderProducts() {
-    const container = document.getElementById('productsTable');
-    const searchTerm = (document.getElementById('searchProduct')?.value || '').toLowerCase();
-    
-    let filtered = products;
-    if (searchTerm) {
-        filtered = products.filter(p => 
-            p.name.toLowerCase().includes(searchTerm) || 
-            p.barcode.includes(searchTerm) ||
-            p.category.includes(searchTerm)
-        );
-    }
-
-    if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state">📭 کوئی پراڈکٹ نہیں</div>';
-        updateDashboard();
-        return;
-    }
-
-    const isOwner = currentUser.role === 'owner' || currentUser.role === 'account_owner';
-
-    let html = `
-        <table>
-            <thead>
-                <tr>
-                    <th>بارکوڈ</th>
-                    <th>نام</th>
-                    <th>کیٹیگری</th>
-                    <th>مقدار</th>
-                    ${isOwner ? '<th>🛒 خرید</th>' : ''}
-                    <th>🏷️ فروخت</th>
-                    <th>عمل</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    const catColors = {
-        'گروسری': '#28a745', 'الیکٹرانکس': '#007bff', 'کپڑے': '#fd7e14',
-        'دوائیں': '#dc3545', 'کاسمیٹکس': '#e83e8c', 'دیگر': '#6c757d'
-    };
-
-    filtered.forEach(p => {
-        const stockClass = (p.quantity <= 5) ? 'stock-low' : 'stock-ok';
-        html += `
-            <tr>
-                <td><code style="font-size: 12px;">${p.barcode}</code></td>
-                <td style="font-weight: 600;">${p.name}</td>
-                <td><span class="category-badge" style="background: ${catColors[p.category] || '#6c757d'}">${p.category}</span></td>
-                <td class="${stockClass}">${p.quantity}</td>
-                ${isOwner ? `<td style="color: #e94560; font-weight: bold;">₹${(p.costPrice || 0).toFixed(2)}</td>` : ''}
-                <td style="color: #28a745; font-weight: bold;">₹${(p.salePrice || 0).toFixed(2)}</td>
-                <td class="actions">
-                    <button class="btn btn-primary btn-small" onclick="editProduct('${p.barcode}')">✏️</button>
-                    <button class="btn btn-danger btn-small" onclick="deleteProduct('${p.barcode}')">🗑️</button>
-                </td>
-            </tr>
-        `;
+    const fields = ['manualBarcode', 'manualName', 'costPrice', 'salePrice', 'staffSalePrice'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
     });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
-    updateDashboard();
+    const qty = document.getElementById('manualQuantity');
+    if (qty) qty.value = '1';
 }
 
-// 4. پراڈکٹ ترمیم کا ماڈل کھولنے کا فنکشن
-function editProduct(barcode) {
-    const p = products.find(x => x.barcode === barcode);
-    if (!p) return;
-
-    editingId = barcode; // اب ایڈیٹنگ آئی ڈی میں بارکوڈ محفوظ ہوگا
-    document.getElementById('editName').value = p.name;
-    document.getElementById('editBarcode').value = p.barcode;
-    document.getElementById('editCategory').value = p.category;
-    document.getElementById('editQuantity').value = p.quantity;
-    document.getElementById('editCostPrice').value = p.costPrice || '';
-    document.getElementById('editSalePrice').value = p.salePrice || '';
+// ==================== ۳. سیلز کے لیے بارکوڈ سے پروڈکٹ تلاش کرنے کا فنکشن ====================
+function findProductForSale() {
+    const barcodeInput = document.getElementById('saleBarcode');
+    if (!barcodeInput) return;
     
-    document.getElementById('editModal').style.display = 'flex';
-}
+    const barcode = barcodeInput.value.trim();
+    if (!barcode) return;
 
-// 5. ترمیم شدہ ڈیٹا کلاؤڈ پر سیو کرنے کا فنکشن
-function saveEdit() {
-    // اب ہم بارکوڈ (editingId) کی مدد سے پروڈکٹ کلاؤڈ پر اپڈیٹ کریں گے
-    if (!editingId) return;
-
-    showNotification('⏳ تبدیلیاں کلاؤڈ پر بھیجی جا رہی ہیں...', 'warning');
-
-    const updateData = {
-        name: document.getElementById('editName').value,
-        barcode: document.getElementById('editBarcode').value,
-        category: document.getElementById('editCategory').value,
-        quantity: parseInt(document.getElementById('editQuantity').value) || 0,
-        salePrice: parseFloat(document.getElementById('editSalePrice').value) || 0,
-        updatedAt: new Date().toISOString()
-    };
+    // 🎯 حل: کلاؤڈ ڈیٹا کی آئی ڈی اور بارکوڈ دونوں کو مضبوطی سے چیک کرنا
+    const p = products.find(x => String(x.barcode).trim() === String(barcode) || String(x.id).trim() === String(barcode));
     
-    if (currentUser.role === 'owner' || currentUser.role === 'account_owner') {
-        updateData.costPrice = parseFloat(document.getElementById('editCostPrice').value) || 0;
+    if (p) {
+        document.getElementById('saleProductName').value = p.name;
+        document.getElementById('saleUnitPrice').value = p.salePrice || 0;
+        document.getElementById('saleQuantity').value = '1';
+        
+        if (typeof calculateSaleTotal === 'function') { calculateSaleTotal(); }
+        
+        showNotification('✅ پراڈکٹ مل گیا: ' + p.name);
+        
+        // مقدار والے ان پٹ پر فوکس لے جائیں تاکہ کام تیز ہو
+        setTimeout(() => {
+            document.getElementById('saleQuantity')?.focus();
+        }, 150);
+    } else {
+        showNotification('❌ یہ بارکوڈ انوینٹری میں موجود نہیں ہے!', 'error');
+        document.getElementById('saleProductName').value = '';
+        document.getElementById('saleUnitPrice').value = '';
+        const totalEl = document.getElementById('saleTotal');
+        if (totalEl) totalEl.textContent = '0.00';
     }
-    
-    db.collection("products").doc(editingId).update(updateData)
-    .then(() => {
-        showNotification('💾 تبدیلیاں کلاؤڈ پر محفوظ ہو گئیں');
-        addActivity('پراڈکٹ ترمیم', updateData.name);
-        closeModal();
-        fetchProductsFromCloud(); // لائیو ریفریش کریں
-    })
-    .catch(error => {
-        showNotification('❌ ڈیٹا اپڈیٹ نہ ہو سکا', 'error');
-    });
 }
-
-// 6. پراڈکٹ کلاؤڈ سے حذف کرنے کا فنکشن
-function deleteProduct(barcode) {
-    if (!confirm('🗑️ کیا آپ واقعی یہ پراڈکٹ کلاؤڈ سے حذف کرنا چاہتے ہیں؟')) return;
-    
-    const p = products.find(x => x.barcode === barcode);
-    if (!p) return;
-
-    db.collection("products").doc(barcode).delete()
-    .then(() => {
-        showNotification('🗑️ کلاؤڈ سے حذف ہو گیا');
-        addActivity('پراڈکٹ حذف', p.name);
-        fetchProductsFromCloud(); // لائیو ریفریش کریں
-    })
-    .catch(error => {
-        showNotification('❌ حذف کرنے میں مسئلہ آیا', 'error');
-    });
-}
-
 /// ==================== سیلز (کلاؤڈ سرور ورژن) ====================
 
 // 1. بارکوڈ کی مدد سے پروڈکٹ تلاش کرنا
