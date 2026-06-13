@@ -135,23 +135,8 @@
     <div class="login-box">
         <div style="font-size: 60px; margin-bottom: 10px;">📦</div>
         <h1>انوینٹری سسٹم</h1>
-        <p>اپنا کردار منتخب کریں</p>
+        <p style="color: #666; margin-bottom: 20px;">پروفیشنل کلاؤڈ انوینٹری لاگ ان</p>
         
-        <div class="role-selector" id="loginRoleSelector">
-            <button class="role-btn selected" onclick="selectRole('account_owner')" id="roleAccount">
-                <span style="font-size: 24px;">🏪</span>
-                <span>اکاؤنٹ اونر</span>
-            </button>
-            <button class="role-btn" onclick="selectRole('manager')" id="roleManager">
-                <span style="font-size: 24px;">👔</span>
-                <span>منیجر</span>
-            </button>
-            <button class="role-btn" onclick="selectRole('salesman')" id="roleSalesman">
-                <span style="font-size: 24px;">🛒</span>
-                <span>سیلزمین</span>
-            </button>
-        </div>
-
         <div style="width: 100%; margin-bottom: 15px;">
             <button type="button" onclick="loginWithGoogle()" style="background-color: white; color: #555; border: 1px solid #ccd0d5; padding: 12px 20px; border-radius: 6px; font-weight: bold; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); gap: 10px;">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 18px;">
@@ -166,20 +151,38 @@
         </div>
 
         <div id="loginForm">
-            <input type="text" class="login-input" id="loginUsername" placeholder="📧 صارف نام">
+            <input type="text" class="login-input" id="loginUsername" placeholder="📧 صارف نام / ای میل">
             <input type="password" class="login-input" id="loginPassword" placeholder="🔒 پاس ورڈ">
             <button class="btn btn-primary" onclick="login()" style="margin-top: 10px;">
                 🔓 لاگ ان
             </button>
         </div>
 
-        <div id="ownerRegisterLink" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-            <p style="color: #666; font-size: 14px; margin-bottom: 8px;">کیا آپ کا اکاؤنٹ نہیں بنا ہوا؟</p>
-            <button type="button" onclick="showOwnerRegister()" 
-                    style="background-color: transparent; color: #1e3c72; border: 2px solid #1e3c72; padding: 10px 20px; border-radius: 6px; font-weight: bold; width: 100%; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span>📝</span> نیا اکاؤنٹ اونر بنائیں
-            </button>
         </div>
+</div>
+
+<div class="admin-trigger" id="adminTrigger" onclick="handleAdminTrigger()"></div>
+
+<div class="modal-overlay" id="adminLoginModal" style="z-index: 5000;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>👑 سپر ایڈمن لاگ ان</h3>
+            <button class="close-x" onclick="closeAdminModal()">&times;</button>
+        </div>
+        <div class="info-text" style="background: #ffebee; color: #c62828;">
+            ⚠️ یہ صرف سسٹم ایڈمنسٹریٹر کے لیے ہے
+        </div>
+        <div class="input-group">
+            <label>صارف نام</label>
+            <input type="text" id="adminUsername" value="superadmin" readonly style="background: #f5f5f5;">
+        </div>
+        <div class="input-group">
+            <label>پاس ورڈ</label>
+            <input type="password" id="adminPassword" placeholder="سپر ایڈمن پاس ورڈ درج کریں">
+        </div>
+        <button class="btn btn-primary" onclick="adminLogin()" style="width: 100%; margin-top: 10px;">
+            🔓 لاگ ان
+        </button>
     </div>
 </div>
 
@@ -699,6 +702,7 @@ function registerOwner() {
 }
 
 // کلاؤڈ پر لاگ ان
+// ==================== کلاؤڈ انٹیلیجنٹ لاگ ان ====================
 function login() {
     const username = document.getElementById('loginUsername').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
@@ -710,7 +714,7 @@ function login() {
 
     showNotification('⏳ کلاؤڈ لاگ ان چیک ہو رہا ہے...', 'warning');
 
-    // فائر بیس سے یوزر کا ڈیٹا اٹھانا
+    // کلاؤڈ ڈیٹا بیس میں یوزر کو تلاش کرنا
     db.collection("users").doc(username).get()
     .then((doc) => {
         if (doc.exists) {
@@ -718,12 +722,19 @@ function login() {
             if (user.password === password) {
                 currentUser = user;
                 
-                // سیشن یاد رکھنے کے لیے لوکل اسٹوریج میں سیو کرنا
+                // سیشن یاد رکھنے کے لیے لوکل اسٹوریج
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 
+                // لائیو ڈیٹا کلاؤڈ سے لوڈ کرنا
                 loadUserData();
                 showMainApp();
-                showNotification('✅ خوش آمدید ' + user.name + '!');
+                
+                // رول کے مطابق خوش آمدید کہنا
+                let roleUrdu = user.role === 'account_owner' ? 'اونر' : (user.role === 'manager' ? 'منیجر' : 'سیلزمین');
+                showNotification(`✅ خوش آمدید ${user.name} (${roleUrdu})!`);
+                
+                // اگر مینیجر یا سیلزمین لاگ ان ہوا ہے تو قیمتِ خرید اور انٹری لاک کرنے کا فلٹر چلائیں
+                applyStaffRestrictions();
             } else {
                 showNotification('❌ غلط پاس ورڈ!', 'error');
             }
@@ -733,7 +744,7 @@ function login() {
     })
     .catch((error) => {
         console.error("Login Error:", error);
-        showNotification('❌ سرور کنکشن فیل!', 'error');
+        showNotification('❌ سرور کنکشن فیل یا ڈیٹا بیس ایرر!', 'error');
     });
 }
 // ==================== جی میل (Google) لاگ ان اور سائن اپ کا کلاؤڈ فنکشن ====================
@@ -799,9 +810,11 @@ document.addEventListener("DOMContentLoaded", function() {
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
         
-        // اگر ڈیٹا لوڈ کرنے اور ایپ دکھانے کے فنکشنز موجود ہیں تو رن کریں
         if (typeof loadUserData === 'function') loadUserData();
         if (typeof showMainApp === 'function') showMainApp();
+        
+        // 🔒 یہ نئی لائن ہم نے بڑھائی ہے تاکہ ریفریش ہوتے ہی پابندیاں دوبارہ لگ جائیں
+        if (typeof applyStaffRestrictions === 'function') applyStaffRestrictions();
         
         console.log("سیشن خود بخود بحال ہو گیا:", currentUser.name);
     }
