@@ -122,9 +122,7 @@
         .stock-low { color: #dc3545; font-weight: bold; }
         .stock-ok { color: #28a745; font-weight: bold; }
         
-        /* سپر ایڈمن ٹرگر */
-        .admin-trigger { position: fixed; bottom: 0; left: 0; width: 100%; height: 5px; opacity: 0; cursor: default; z-index: 9999; }
-    </style>
+          </style>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -164,18 +162,19 @@
 <div id="mainApp" class="container hidden">
 
     <div class="app-header">
-        <div class="user-info">
-            <div class="user-avatar" id="userAvatar">U</div>
-            <div>
-                <div style="font-weight: bold; font-size: 16px;" id="userName">صارف</div>
-                <span class="role-badge" id="userRole">سیلزمین</span>
-            </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="sync-status" id="syncStatus">✅ ہم آہنگ</span>
-            <button class="btn btn-danger btn-small" onclick="logout()">🚪 لاگ آؤٹ</button>
+    <div class="user-info">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <img id="userAvatarImg" src="" alt="Avatar" style="display: none; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #28a745;">
+        <div>
+            <div style="font-weight: bold; font-size: 16px;" id="userName">لوڈنگ...</div>
+            <span class="role-badge" id="userRole">سیلزمین</span>
         </div>
     </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="sync-status" id="syncStatus">✅ ہم آہنگ</span>
+        <button class="btn btn-danger btn-small" onclick="logout()">🚪 لاگ آؤٹ</button>
+    </div>
+</div>
     <div class="tabs" id="mainTabs">
         <button class="tab active" onclick="showTab('dashboard')">📊 ڈیش بورڈ</button>
         <button class="tab" onclick="showTab('scan')">📷 اسکین</button>
@@ -1680,6 +1679,9 @@ function loginWithGoogle() {
             // لاگ ان اسکرینز چھپائیں اور مین ایپ دکھائیں
             hideAuthScreens();
 
+            // 🔥 ہیڈر میں صارف کا نام اور تصویر فوراً اپڈیٹ کریں
+            updateHeaderUI();
+
             // 🔥 کلاؤڈ سے انوینٹری اور سیلز کا لائیو ڈیٹا فوراً لوڈ کریں
             if (typeof fetchProductsFromCloud === 'function') { fetchProductsFromCloud(); }
             if (typeof fetchSalesFromCloud === 'function') { fetchSalesFromCloud(); }
@@ -1693,6 +1695,47 @@ function loginWithGoogle() {
         console.error(err);
         showNotification('❌ گوگل لاگ ان کینسل یا فیل ہو گیا!', 'error');
     });
+}
+
+// ==================== ہیڈر میں صارف کا نام اور تصویر اپڈیٹ کرنے کا مستقل فنکشن ====================
+function updateHeaderUI() {
+    if (!currentUser) return;
+
+    const nameElement = document.getElementById('userName');
+    const avatarElement = document.getElementById('userAvatar');
+    const avatarImgElement = document.getElementById('userAvatarImg');
+    const roleElement = document.getElementById('userRole');
+
+    // 1. نام اپڈیٹ کرنا (اگر پورے نام کا آپشن ہو تو وہ، ورنہ صارف نام)
+    const displayName = currentUser.fullName || currentUser.username || "اسٹور مالک";
+    if (nameElement) nameElement.textContent = displayName;
+
+    // 2. رول دکھانا (اردو میں ترجمہ کر کے)
+    if (roleElement) {
+        if (currentUser.role === 'account_owner') {
+            roleElement.textContent = '👑 اونر / مالک';
+            roleElement.style.background = '#ffc107';
+            roleElement.style.color = '#333';
+        } else {
+            roleElement.textContent = '🧑‍ staff / سیلزمین';
+            roleElement.style.background = '#17a2b8';
+            roleElement.style.color = 'white';
+        }
+    }
+
+    // 3. تصویر یا پہلا حرف سیٹ کرنا
+    if (currentUser.photoURL && avatarImgElement && avatarElement) {
+        // اگر گوگل کی تصویر موجود ہے
+        avatarImgElement.src = currentUser.photoURL;
+        avatarImgElement.style.display = 'block';
+        avatarElement.style.display = 'none'; // ٹیکسٹ والا گول دائرہ چھپا دیں
+    } else if (avatarElement && avatarImgElement) {
+        // اگر تصویر نہیں ہے تو نام کا پہلا حرف نکالیں
+        const firstLetter = displayName.charAt(0).toUpperCase();
+        avatarElement.textContent = firstLetter;
+        avatarElement.style.display = 'flex';
+        avatarImgElement.style.display = 'none'; // امیج ٹیگ چھپا دیں
+    }
 }
 
 // ۳. مینوئل یوزر رجسٹریشن (فائر بیس کلاؤڈ پر منتقل)
