@@ -151,6 +151,19 @@
             </button>
         </div>
 
+        <div style="width: 100%; margin-bottom: 15px;">
+            <button type="button" onclick="loginWithGoogle()" style="background-color: white; color: #555; border: 1px solid #ccd0d5; padding: 12px 20px; border-radius: 6px; font-weight: bold; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); gap: 10px;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 18px;">
+                Google کے ساتھ لاگ ان کریں
+            </button>
+            
+            <div style="display: flex; align-items: center; text-align: center; margin: 15px 0; color: #999; font-size: 13px;">
+                <div style="flex: 1; border-bottom: 1px solid #eee;"></div>
+                <span style="padding: 0 10px; color: #666;">یا مینوئل لاگ ان کریں</span>
+                <div style="flex: 1; border-bottom: 1px solid #eee;"></div>
+            </div>
+        </div>
+
         <div id="loginForm">
             <input type="text" class="login-input" id="loginUsername" placeholder="📧 صارف نام">
             <input type="password" class="login-input" id="loginPassword" placeholder="🔒 پاس ورڈ">
@@ -159,11 +172,12 @@
             </button>
         </div>
 
-        <div id="ownerRegisterLink" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
-            <span style="color: #999; font-size: 13px;">اکاؤنٹ نہیں ہے؟</span><br>
-            <span class="toggle-link" onclick="showOwnerRegister()">
-                📝 نیا اکاؤنٹ اونر بنائیں
-            </span>
+        <div id="ownerRegisterLink" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+            <p style="color: #666; font-size: 14px; margin-bottom: 8px;">کیا آپ کا اکاؤنٹ نہیں بنا ہوا؟</p>
+            <button type="button" onclick="showOwnerRegister()" 
+                    style="background-color: transparent; color: #1e3c72; border: 2px solid #1e3c72; padding: 10px 20px; border-radius: 6px; font-weight: bold; width: 100%; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span>📝</span> نیا اکاؤنٹ اونر بنائیں
+            </button>
         </div>
     </div>
 </div>
@@ -192,7 +206,6 @@
         </button>
     </div>
 </div>
-
 <div id="mainApp" class="container hidden">
 
     <div class="app-header">
@@ -581,18 +594,37 @@ function adminLogin() {
     }
 }
 
-// ==================== لاگ ان / رجسٹر ====================
+// ==================== کلاؤڈ لاگ ان / رجسٹر (فائر بیس ایڈیشن) ====================
+
+// پیج لوڈ ہوتے ہی چیک کریں کہ کیا کوئی پہلے سے لاگ ان ہے؟ (ریفریش پروٹیکشن)
+document.addEventListener("DOMContentLoaded", function() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        loadUserData();
+        showMainApp();
+        if (typeof showNotification === 'function') {
+            showNotification('✅ سیشن خود بخود بحال ہو گیا!');
+        }
+    }
+});
+
 function selectRole(role) {
     selectedRole = role;
     document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('selected'));
-    document.getElementById('role' + role.charAt(0).toUpperCase() + role.slice(1).replace('_', '')).classList.add('selected');
+    
+    const roleId = 'role' + role.charAt(0).toUpperCase() + role.slice(1).replace('_', '');
+    const roleBtn = document.getElementById(roleId);
+    if (roleBtn) roleBtn.classList.add('selected');
     
     // اگر منیجر یا سیلزمین ہے تو رجسٹر لنک ہائڈ کریں
     const regLink = document.getElementById('ownerRegisterLink');
-    if (role === 'manager' || role === 'salesman') {
-        regLink.style.display = 'none';
-    } else {
-        regLink.style.display = 'block';
+    if (regLink) {
+        if (role === 'manager' || role === 'salesman') {
+            regLink.style.display = 'none';
+        } else {
+            regLink.style.display = 'block';
+        }
     }
 }
 
@@ -608,9 +640,10 @@ function closeOwnerRegister() {
     document.getElementById('ownerRegConfirm').value = '';
 }
 
+// کلاؤڈ پر مینوئل رجسٹریشن
 function registerOwner() {
     const name = document.getElementById('ownerRegName').value.trim();
-    const username = document.getElementById('ownerRegUsername').value.trim();
+    const username = document.getElementById('ownerRegUsername').value.trim().toLowerCase(); // یوزر نیم چھوٹے حروف میں
     const password = document.getElementById('ownerRegPassword').value;
     const confirm = document.getElementById('ownerRegConfirm').value;
 
@@ -627,32 +660,46 @@ function registerOwner() {
         return;
     }
 
-    const allUsers = getAllUsers();
-    if (allUsers.find(u => u.username === username)) {
-        showNotification('❌ یہ صارف نام پہلے سے موجود ہے', 'error');
-        return;
-    }
+    showNotification('⏳ کلاؤڈ پر اکاؤنٹ چیک کیا جا رہا ہے...', 'warning');
 
-    const newOwner = {
-        id: 'owner_' + Date.now(),
-        name: name,
-        username: username,
-        password: password,
-        role: 'account_owner',
-        createdAt: new Date().toISOString()
-    };
+    // فائر بیس پر چیک کریں کہ یوزر پہلے سے ہے تو نہیں
+    db.collection("users").doc(username).get()
+    .then((doc) => {
+        if (doc.exists) {
+            showNotification('❌ یہ صارف نام پہلے سے موجود ہے', 'error');
+        } else {
+            const newOwner = {
+                id: 'owner_' + Date.now(),
+                name: name,
+                username: username,
+                password: password, // کلاؤڈ پاس ورڈ
+                role: 'account_owner',
+                createdAt: new Date().toISOString()
+            };
 
-    allUsers.push(newOwner);
-    saveAllUsers(allUsers);
-
-    showNotification('✅ اکاؤنٹ کامیابی سے بنا! اب لاگ ان کریں');
-    document.getElementById('loginUsername').value = username;
-    document.getElementById('loginPassword').value = password;
-    closeOwnerRegister();
+            // فائر بیس کلاؤڈ پر سیو کریں
+            db.collection("users").doc(username).set(newOwner)
+            .then(() => {
+                showNotification('✅ اکاؤنٹ کامیابی سے بنا! اب لاگ ان کریں');
+                document.getElementById('loginUsername').value = username;
+                document.getElementById('loginPassword').value = password;
+                closeOwnerRegister();
+            })
+            .catch((error) => {
+                console.error("Firebase Reg Error:", error);
+                showNotification('❌ کلاؤڈ پر ڈیٹا سیو نہیں ہو سکا', 'error');
+            });
+        }
+    })
+    .catch((error) => {
+        console.error("Firebase Network Error:", error);
+        showNotification('❌ انٹرنیٹ کنکشن یا فائر بیس رولز کا مسئلہ ہے', 'error');
+    });
 }
 
+// کلاؤڈ پر لاگ ان
 function login() {
-    const username = document.getElementById('loginUsername').value.trim();
+    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
 
     if (!username || !password) {
@@ -660,22 +707,79 @@ function login() {
         return;
     }
 
-    const allUsers = getAllUsers();
-    const user = allUsers.find(u => u.username === username && u.password === password);
+    showNotification('⏳ کلاؤڈ لاگ ان چیک ہو رہا ہے...', 'warning');
 
-    if (user) {
-        currentUser = user;
-        loadUserData();
-        showMainApp();
-        showNotification('✅ خوش آمدید ' + user.name + '!');
-    } else {
-        showNotification('❌ غلط صارف نام یا پاس ورڈ', 'error');
-    }
+    // فائر بیس سے یوزر کا ڈیٹا اٹھانا
+    db.collection("users").doc(username).get()
+    .then((doc) => {
+        if (doc.exists) {
+            const user = doc.data();
+            if (user.password === password) {
+                currentUser = user;
+                
+                // سیشن یاد رکھنے کے لیے لوکل اسٹوریج میں سیو کرنا
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                loadUserData();
+                showMainApp();
+                showNotification('✅ خوش آمدید ' + user.name + '!');
+            } else {
+                showNotification('❌ غلط پاس ورڈ!', 'error');
+            }
+        } else {
+            showNotification('❌ اس صارف نام کا کوئی اکاؤنٹ نہیں ملا', 'error');
+        }
+    })
+    .catch((error) => {
+        console.error("Login Error:", error);
+        showNotification('❌ سرور کنکشن فیل!', 'error');
+    });
+}
+
+// جی میل (Google) سے لاگ ان / سائن اپ کا پروفیشنل فنکشن
+function loginWithGoogle() {
+    showNotification('⏳ جی میل سے رابطہ ہو رہا ہے...', 'warning');
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    firebase.auth().signInWithPopup(provider)
+    .then((result) => {
+        const user = result.user;
+        const userEmail = user.email.toLowerCase();
+        
+        const userData = {
+            id: 'owner_' + user.uid,
+            name: user.displayName,
+            username: userEmail,
+            role: 'account_owner',
+            email: userEmail,
+            createdAt: new Date().toISOString()
+        };
+
+        // کلاؤڈ پر یوزر کا ڈیٹا مرج کرنا (اگر نیا ہے تو بن جائے گا، پرانا ہے تو اپ ڈیٹ ہو جائے گا)
+        db.collection("users").doc(user.uid).set(userData, { merge: true })
+        .then(() => {
+            currentUser = userData;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            loadUserData();
+            showMainApp();
+            showNotification(`🚀 خوش آمدید، ${user.displayName}!`);
+        })
+        .catch((err) => {
+            console.error(err);
+            showNotification('❌ ڈیٹا بیس ایرر!', 'error');
+        });
+    })
+    .catch((err) => {
+        console.error(err);
+        showNotification('❌ گوگل لاگ ان کینسل یا بلاک ہو گیا ہے!', 'error');
+    });
 }
 
 function logout() {
     currentUser = null;
-    stopScanner();
+    localStorage.removeItem('currentUser'); // سیشن ڈیلیٹ کرنا
+    if (typeof stopScanner === 'function') stopScanner();
+    
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('mainApp').classList.add('hidden');
     document.getElementById('loginUsername').value = '';
@@ -683,51 +787,25 @@ function logout() {
     showNotification('👋 لاگ آؤٹ ہو گیا');
 }
 
-// ==================== یوزر مینجمنٹ ====================
-function getAllUsers() {
-    return JSON.parse(localStorage.getItem('inventory_all_users') || '[]');
-}
-
-function saveAllUsers(users) {
-    localStorage.setItem('inventory_all_users', JSON.stringify(users));
-}
-
 // ==================== ڈیٹا مینجمنٹ ====================
 function loadUserData() {
     if (!currentUser) return;
     
+    // کلاؤڈ پر منتقلی کے دوران لوکل ڈیٹا کریش ہونے سے بچانے کا پریفکس
+    let prefix = '';
     if (currentUser.id === 'superadmin') {
-        // سپر ایڈمن تمام اونرز کا ڈیٹا اکٹھا کرے گا
         products = []; sales = []; activities = [];
-        const allUsers = getAllUsers();
-        allUsers.forEach(u => {
-            if (u.role === 'account_owner' || u.id.startsWith('owner_')) {
-                const pfx = u.id + '_';
-                const uProds = JSON.parse(localStorage.getItem(pfx + 'products') || '[]');
-                const uSales = JSON.parse(localStorage.getItem(pfx + 'sales') || '[]');
-                const uActs = JSON.parse(localStorage.getItem(pfx + 'activities') || '[]');
-                
-                products = products.concat(uProds);
-                sales = sales.concat(uSales);
-                activities = activities.concat(uActs);
-            }
-        });
-        activities.sort((a,b) => b.id - a.id);
+        return;
     } else if (currentUser.role === 'manager' || currentUser.role === 'salesman') {
-        // اسٹاف کو اس کے متعلقہ اونر کا ڈیٹا شو ہوگا
-        const prefix = currentUser.ownerId + '_';
-        products = JSON.parse(localStorage.getItem(prefix + 'products') || '[]');
-        sales = JSON.parse(localStorage.getItem(prefix + 'sales') || '[]');
-        activities = JSON.parse(localStorage.getItem(prefix + 'activities') || '[]');
+        prefix = currentUser.ownerId + '_';
     } else {
-        // اکاؤنٹ اونر کا اپنا ڈیٹا
-        const prefix = currentUser.id + '_';
-        products = JSON.parse(localStorage.getItem(prefix + 'products') || '[]');
-        sales = JSON.parse(localStorage.getItem(prefix + 'sales') || '[]');
-        activities = JSON.parse(localStorage.getItem(prefix + 'activities') || '[]');
+        prefix = currentUser.id + '_';
     }
+    
+    products = JSON.parse(localStorage.getItem(prefix + 'products') || '[]');
+    sales = JSON.parse(localStorage.getItem(prefix + 'sales') || '[]');
+    activities = JSON.parse(localStorage.getItem(prefix + 'activities') || '[]');
 }
-
 function saveUserData() {
     if (!currentUser || currentUser.id === 'superadmin') return; 
     // ڈیٹا ہمیشہ اکاؤنٹ اونر کے کی-اسپیس (Key-space) میں سیو ہوگا
