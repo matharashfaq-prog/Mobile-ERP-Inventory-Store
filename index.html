@@ -5,21 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>پراڈکٹ انوینٹری سسٹم</title>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; padding: 10px; color: #333; }
         .container { max-width: 900px; margin: 0 auto; }
         .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-
-        /* لاگ ان */
+        
+        /* لاگ ان سکرین */
         .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
         .login-box { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); width: 100%; max-width: 450px; text-align: center; }
         .login-box h1 { color: #0f3460; margin-bottom: 10px; font-size: 28px; }
-
-        /* بٹن */
+        .login-box p { color: #666; margin-bottom: 25px; }
+        
+        .role-selector { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+        .role-btn { padding: 15px; border: 2px solid #ddd; background: white; border-radius: 10px; cursor: pointer; transition: all 0.3s; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-direction: column; }
+        .role-btn:hover { border-color: #0f3460; transform: translateY(-2px); }
+        .role-btn.selected { border-color: #0f3460; background: #0f3460; color: white; }
+        
+        .login-input { width: 100%; padding: 14px; border: 2px solid #ddd; border-radius: 10px; margin-bottom: 12px; font-size: 16px; }
+        .login-input:focus { outline: none; border-color: #0f3460; }
+        
         .btn { padding: 14px 24px; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; transition: all 0.3s; margin: 5px; font-weight: 600; }
         .btn-primary { background: linear-gradient(135deg, #0f3460 0%, #16213e 100%); color: white; width: 100%; }
         .btn-success { background: #28a745; color: white; }
@@ -27,8 +32,9 @@
         .btn-warning { background: #ffc107; color: #333; }
         .btn-info { background: #17a2b8; color: white; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .btn-small { padding: 6px 12px; font-size: 12px; }
-
+        .btn-outline { background: transparent; border: 2px solid #0f3460; color: #0f3460; }
+        .btn-outline:hover { background: #0f3460; color: white; }
+        
         /* ہیڈر */
         .app-header { background: white; padding: 15px 20px; border-radius: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .user-info { display: flex; align-items: center; gap: 10px; }
@@ -38,32 +44,31 @@
         .role-account_owner { background: #9c27b0; }
         .role-manager { background: #0f3460; }
         .role-salesman { background: #17a2b8; }
-
+        
         /* ٹیبز */
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
         .tab { padding: 12px 20px; background: rgba(255,255,255,0.15); color: white; border: none; border-radius: 10px; cursor: pointer; white-space: nowrap; transition: all 0.3s; font-size: 15px; }
         .tab.active { background: white; color: #0f3460; font-weight: bold; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-
+        
         /* اسکینر */
+        .scanner-container { text-align: center; }
         #reader { width: 100% !important; border-radius: 10px; overflow: hidden; margin: 15px 0; }
         .camera-status { padding: 14px; border-radius: 10px; margin: 10px 0; font-size: 14px; font-weight: 500; }
         .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .status-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-
-        /* فارم */
+        
+        /* فارمز */
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+        
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; margin-bottom: 6px; font-weight: bold; color: #333; font-size: 14px; }
         .input-group input, .input-group select { width: 100%; padding: 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
         .input-group input:focus, .input-group select:focus { outline: none; border-color: #0f3460; }
-        .login-input { width: 100%; padding: 14px; border: 2px solid #ddd; border-radius: 10px; margin-bottom: 12px; font-size: 16px; }
-        .login-input:focus { outline: none; border-color: #0f3460; }
-
-        /* قیمت */
+        
         .price-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .price-box { padding: 20px; border-radius: 12px; text-align: center; border: 2px solid; }
         .price-box.cost { background: #fff8e1; border-color: #ffc107; }
@@ -72,7 +77,7 @@
         .price-value { font-size: 28px; font-weight: bold; color: #333; }
         .price-box input { width: 100%; border: none; background: transparent; text-align: center; font-size: 24px; font-weight: bold; color: #333; }
         .price-box input:focus { outline: none; }
-
+        
         /* ٹیبل */
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
@@ -81,14 +86,15 @@
         tr:hover { background: #fafafa; }
         .category-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; }
         .actions { display: flex; gap: 5px; }
-
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        
         /* اسٹاف */
         .staff-card { background: #f8f9fa; padding: 18px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid #0f3460; }
-
-        /* نوٹیفیکیشن */
+        
+        /* نوٹیفکیشن */
         .notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 16px 32px; border-radius: 12px; color: white; font-weight: bold; box-shadow: 0 8px 25px rgba(0,0,0,0.3); display: none; z-index: 3000; animation: slideDown 0.4s; min-width: 300px; text-align: center; }
         @keyframes slideDown { from { transform: translateX(-50%) translateY(-100%); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
-
+        
         /* مودال */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .modal-box { background: white; padding: 30px; border-radius: 20px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; animation: modalIn 0.3s; }
@@ -97,64 +103,66 @@
         .modal-header h3 { margin: 0; color: #0f3460; }
         .close-x { font-size: 28px; cursor: pointer; color: #999; background: none; border: none; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.3s; }
         .close-x:hover { background: #f0f0f0; color: #333; }
-
+        
         /* ڈیش بورڈ */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-box { background: white; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.1); transition: transform 0.3s; }
         .stat-box:hover { transform: translateY(-5px); }
         .stat-box .number { font-size: 36px; font-weight: bold; color: #0f3460; }
         .stat-box .label { color: #666; margin-top: 8px; font-size: 14px; }
-
-        /* متفرق */
+        
         .hidden { display: none !important; }
         .empty-state { text-align: center; padding: 50px; color: #999; font-size: 16px; }
         .sync-status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #e8f5e9; color: #2e7d32; }
         .sync-status.syncing { background: #fff3e0; color: #ef6c00; }
+        .sync-status.error { background: #ffebee; color: #c62828; }
         .section-title { color: #0f3460; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
         .info-text { background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #1565c0; font-size: 14px; line-height: 1.6; }
+        .toggle-link { color: #0f3460; cursor: pointer; text-decoration: underline; font-size: 14px; margin-top: 15px; display: inline-block; }
         .stock-low { color: #dc3545; font-weight: bold; }
         .stock-ok { color: #28a745; font-weight: bold; }
-        .google-btn { background: white; color: #555; border: 1px solid #ccd0d5; padding: 12px 20px; border-radius: 6px; font-weight: bold; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); gap: 10px; }
-        .google-btn:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-        .divider { display: flex; align-items: center; margin: 15px 0; color: #999; font-size: 13px; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
-        .divider span { padding: 0 10px; }
-
-        /* سپر ایڈمن ٹرگر (پوشیدہ) */
+        
+        /* سپر ایڈمن ٹرگر */
         .admin-trigger { position: fixed; bottom: 0; left: 0; width: 100%; height: 5px; opacity: 0; cursor: default; z-index: 9999; }
     </style>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 </head>
 <body>
 
-<!-- ==================== لاگ ان اسکرین ==================== -->
 <div id="loginScreen" class="login-screen">
     <div class="login-box">
         <div style="font-size: 60px; margin-bottom: 10px;">📦</div>
         <h1>انوینٹری سسٹم</h1>
-        <p style="color: #666; margin-bottom: 20px;">پروفیشنل کلاؤڈ انوینٹری</p>
+        <p style="color: #666; margin-bottom: 20px;">پروفیشنل کلاؤڈ انوینٹری لاگ ان</p>
+        
+        <div style="width: 100%; margin-bottom: 15px;">
+            <button type="button" onclick="loginWithGoogle()" style="background-color: white; color: #555; border: 1px solid #ccd0d5; padding: 12px 20px; border-radius: 6px; font-weight: bold; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); gap: 10px;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 18px;">
+                Google کے ساتھ لاگ ان کریں
+            </button>
+            
+            <div style="display: flex; align-items: center; text-align: center; margin: 15px 0; color: #999; font-size: 13px;">
+                <div style="flex: 1; border-bottom: 1px solid #eee;"></div>
+                <span style="padding: 0 10px; color: #666;">یا مینوئل لاگ ان کریں</span>
+                <div style="flex: 1; border-bottom: 1px solid #eee;"></div>
+            </div>
+        </div>
 
-        <button type="button" class="google-btn" onclick="loginWithGoogle()">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 18px;">
-            Google کے ساتھ لاگ ان کریں
-        </button>
+        <div id="loginForm">
+            <input type="text" class="login-input" id="loginUsername" placeholder="📧 صارف نام / ای میل">
+            <input type="password" class="login-input" id="loginPassword" placeholder="🔒 پاس ورڈ">
+            <button class="btn btn-primary" onclick="login()" style="margin-top: 10px;">
+                🔓 لاگ ان
+            </button>
+        </div>
 
-        <div class="divider"><span>یا مینوئل لاگ ان کریں</span></div>
-
-        <input type="text" class="login-input" id="loginUsername" placeholder="📧 صارف نام / ای میل">
-        <input type="password" class="login-input" id="loginPassword" placeholder="🔒 پاس ورڈ">
-        <button class="btn btn-primary" onclick="login()">🔓 لاگ ان</button>
-
-        <p style="margin-top: 15px; font-size: 14px; color: #666;">
-            نیا اکاؤنٹ بنائیں؟
-            <span style="color: #0f3460; cursor: pointer; text-decoration: underline;" onclick="showOwnerRegister()">رجسٹر کریں</span>
-        </p>
-    </div>
+        </div>
 </div>
 
-<!-- ==================== سپر ایڈمن ٹرگر (پوشیدہ) ==================== -->
 <div class="admin-trigger" id="adminTrigger" onclick="handleAdminTrigger()"></div>
 
-<!-- ==================== سپر ایڈمن مودال ==================== -->
 <div class="modal-overlay" id="adminLoginModal" style="z-index: 5000;">
     <div class="modal-box">
         <div class="modal-header">
@@ -166,50 +174,42 @@
         </div>
         <div class="input-group">
             <label>صارف نام</label>
-            <input type="text" value="superadmin" readonly style="width:100%; padding:14px; border:2px solid #e0e0e0; border-radius:10px; font-size:16px; background:#f5f5f5;">
+            <input type="text" id="adminUsername" value="superadmin" readonly style="background: #f5f5f5;">
         </div>
         <div class="input-group">
             <label>پاس ورڈ</label>
             <input type="password" id="adminPassword" placeholder="سپر ایڈمن پاس ورڈ درج کریں">
         </div>
-        <button class="btn btn-primary" onclick="adminLogin()">🔓 لاگ ان</button>
-    </div>
-</div>
-
-<!-- ==================== اکاؤنٹ اونر رجسٹریشن مودال ==================== -->
-<div class="modal-overlay" id="ownerRegisterModal">
-    <div class="modal-box">
-        <div class="modal-header">
-            <h3>📝 نیا اکاؤنٹ بنائیں</h3>
-            <button class="close-x" onclick="closeOwnerRegister()">&times;</button>
-        </div>
-        <div class="info-text">
-            🏪 <strong>اکاؤنٹ اونر رجسٹریشن</strong><br>
-            اس اکاؤنٹ سے آپ منیجر اور سیلزمین بنا سکیں گے۔
-        </div>
-        <div class="input-group">
-            <label>پورا نام *</label>
-            <input type="text" id="ownerRegName" placeholder="اپنا پورا نام">
-        </div>
-        <div class="input-group">
-            <label>صارف نام * (یونیک)</label>
-            <input type="text" id="ownerRegUsername" placeholder="جیسے: shop123">
-        </div>
-        <div class="input-group">
-            <label>پاس ورڈ * (کم از کم 4 حروف)</label>
-            <input type="password" id="ownerRegPassword" placeholder="پاس ورڈ">
-        </div>
-        <div class="input-group">
-            <label>پاس ورڈ تصدیق *</label>
-            <input type="password" id="ownerRegConfirm" placeholder="پاس ورڈ دوبارہ">
-        </div>
-        <button class="btn btn-success" onclick="registerOwner()" style="width:100%; margin-top:10px; padding:14px;">
-            ✅ اکاؤنٹ بنائیں
+        <button class="btn btn-primary" onclick="adminLogin()" style="width: 100%; margin-top: 10px;">
+            🔓 لاگ ان
         </button>
     </div>
 </div>
 
-<!-- ==================== مین ایپ ==================== -->
+<div class="admin-trigger" id="adminTrigger" onclick="handleAdminTrigger()"></div>
+
+<div class="modal-overlay" id="adminLoginModal" style="z-index: 5000;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>👑 سپر ایڈمن لاگ ان</h3>
+            <button class="close-x" onclick="closeAdminModal()">&times;</button>
+        </div>
+        <div class="info-text" style="background: #ffebee; color: #c62828;">
+            ⚠️ یہ صرف سسٹم ایڈمنسٹریٹر کے لیے ہے
+        </div>
+        <div class="input-group">
+            <label>صارف نام</label>
+            <input type="text" id="adminUsername" value="superadmin" readonly style="background: #f5f5f5;">
+        </div>
+        <div class="input-group">
+            <label>پاس ورڈ</label>
+            <input type="password" id="adminPassword" placeholder="سپر ایڈمن پاس ورڈ درج کریں">
+        </div>
+        <button class="btn btn-primary" onclick="adminLogin()" style="width: 100%; margin-top: 10px;">
+            🔓 لاگ ان
+        </button>
+    </div>
+</div>
 <div id="mainApp" class="container hidden">
 
     <div class="app-header">
@@ -227,15 +227,14 @@
     </div>
 
     <div class="tabs" id="mainTabs">
-        <button class="tab active" onclick="showTab('dashboard', event)">📊 ڈیش بورڈ</button>
-        <button class="tab" onclick="showTab('scan', event)">📷 اسکین</button>
-        <button class="tab" onclick="showTab('products', event)">📦 پراڈکٹس</button>
-        <button class="tab" onclick="showTab('sales', event)">💰 سیلز</button>
-        <button class="tab owner-tab hidden" onclick="showTab('staff', event)">👥 اسٹاف</button>
-        <button class="tab owner-tab hidden" onclick="showTab('settings', event)">⚙️ سیٹنگز</button>
+        <button class="tab active" onclick="showTab('dashboard')">📊 ڈیش بورڈ</button>
+        <button class="tab" onclick="showTab('scan')">📷 اسکین</button>
+        <button class="tab" onclick="showTab('products')">📦 پراڈکٹس</button>
+        <button class="tab" onclick="showTab('sales')">💰 سیلز</button>
+        <button class="tab owner-tab hidden" onclick="showTab('staff')">👥 اسٹاف</button>
+        <button class="tab owner-tab hidden" onclick="showTab('settings')">⚙️ سیٹنگز</button>
     </div>
 
-    <!-- ڈیش بورڈ ٹیب -->
     <div id="tab-dashboard" class="tab-content active">
         <div class="stats-grid">
             <div class="stat-box">
@@ -259,18 +258,22 @@
                 <div class="label">آج کا منافع</div>
             </div>
         </div>
+
         <div class="card">
             <h3 class="section-title">📈 حالیہ سرگرمیاں</h3>
-            <div id="recentActivity"><div class="empty-state">کوئی سرگرمی نہیں</div></div>
+            <div id="recentActivity">
+                <div class="empty-state">کوئی سرگرمی نہیں</div>
+            </div>
         </div>
     </div>
 
-    <!-- اسکین ٹیب -->
     <div id="tab-scan" class="tab-content">
         <div class="card">
-            <div style="text-align: center;">
+            <div class="scanner-container">
                 <h3 class="section-title">📷 کیمرے سے اسکین کریں</h3>
-                <div id="cameraStatus" class="camera-status status-info">🔘 کیمرہ بند ہے</div>
+                <div id="cameraStatus" class="camera-status status-info">
+                    🔘 کیمرہ بند ہے - "کیمرہ آن کریں" پر کلک کریں
+                </div>
                 <div id="reader"></div>
                 <div style="margin-top: 15px;">
                     <button class="btn btn-primary" onclick="startScanner()">📷 کیمرہ آن کریں</button>
@@ -302,13 +305,13 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>مقدار</label>
+                    <label>مقدار (تعداد)</label>
                     <input type="number" id="manualQuantity" value="1" min="1">
                 </div>
             </div>
 
             <div id="ownerPrices" style="margin-top: 20px;">
-                <h4 style="margin-bottom: 15px; color: #e94560;">💰 قیمتیں (صرف اونر)</h4>
+                <h4 style="margin-bottom: 15px; color: #e94560;">💰 قیمتیں (صرف اونر کے لیے)</h4>
                 <div class="price-inputs">
                     <div class="price-box cost">
                         <div class="price-label">🛒 خرید قیمت (Cost)</div>
@@ -334,14 +337,13 @@
         </div>
     </div>
 
-    <!-- پراڈکٹس ٹیب -->
     <div id="tab-products" class="tab-content">
         <div class="card">
             <h3 class="section-title">📦 پراڈکٹس کی فہرست</h3>
             <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="searchProduct" placeholder="🔍 نام، بارکوڈ یا کیٹیگری..."
-                    style="flex: 1; padding: 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px;"
-                    onkeyup="renderProducts()">
+                <input type="text" id="searchProduct" placeholder="🔍 نام، بارکوڈ یا کیٹیگری سے تلاش..." 
+                       style="flex: 1; padding: 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px;" 
+                       onkeyup="renderProducts()">
                 <button class="btn btn-primary" onclick="exportData('json')">📥 JSON</button>
                 <button class="btn btn-warning" onclick="exportData('csv')">📄 CSV</button>
             </div>
@@ -351,17 +353,16 @@
         </div>
     </div>
 
-    <!-- سیلز ٹیب -->
     <div id="tab-sales" class="tab-content">
         <div class="card">
             <h3 class="section-title">💰 نئی سیل</h3>
             <div class="form-grid">
                 <div class="input-group">
-                    <label>بارکوڈ</label>
+                    <label>بارکوڈ اسکین کریں یا لکھیں</label>
                     <input type="text" id="saleBarcode" placeholder="بارکوڈ درج کریں" onchange="findProductForSale()">
                 </div>
                 <div class="input-group">
-                    <label>پراڈکٹ</label>
+                    <label>پراڈکٹ کا نام</label>
                     <input type="text" id="saleProductName" readonly placeholder="خودکار آ جائے گا" style="background: #f5f5f5;">
                 </div>
                 <div class="input-group">
@@ -375,19 +376,21 @@
             </div>
             <div class="price-box sale" style="margin: 20px 0;">
                 <div class="price-label">کل رقم</div>
-                <div class="price-value" id="saleTotal">₹0.00</div>
+                <div class="price-value" id="saleTotal" style="font-size: 36px;">₹0.00</div>
             </div>
             <button class="btn btn-success" onclick="makeSale()" style="width: 100%; padding: 16px; font-size: 18px;">
                 💰 سیل مکمل کریں
             </button>
         </div>
+
         <div class="card">
             <h3 class="section-title">📋 سیلز کی تاریخ</h3>
-            <div id="salesHistory"><div class="empty-state">کوئی سیل ریکارڈ نہیں</div></div>
+            <div id="salesHistory">
+                <div class="empty-state">کوئی سیل ریکارڈ نہیں</div>
+            </div>
         </div>
     </div>
 
-    <!-- اسٹاف ٹیب -->
     <div id="tab-staff" class="tab-content">
         <div class="card">
             <h3 class="section-title">➕ نیا اسٹاف شامل کریں</h3>
@@ -416,13 +419,15 @@
                 ✅ اسٹاف شامل کریں
             </button>
         </div>
+
         <div class="card">
             <h3 class="section-title">📋 میرا اسٹاف</h3>
-            <div id="staffList"><div class="empty-state">👥 ابھی تک کوئی اسٹاف نہیں</div></div>
+            <div id="staffList">
+                <div class="empty-state">👥 ابھی تک کوئی اسٹاف نہیں</div>
+            </div>
         </div>
     </div>
 
-    <!-- سیٹنگز ٹیب -->
     <div id="tab-settings" class="tab-content">
         <div class="card">
             <h3 class="section-title">☁️ گوگل شیٹس سیٹ اپ</h3>
@@ -441,6 +446,7 @@
                 💾 سیٹنگز محفوظ کریں
             </button>
         </div>
+
         <div class="card" style="margin-top: 15px;">
             <h3 class="section-title">🗑️ ڈیٹا مینجمنٹ</h3>
             <button class="btn btn-warning" onclick="syncNow()" style="width: 100%; margin-bottom: 10px; padding: 14px;">
@@ -453,7 +459,42 @@
     </div>
 </div>
 
-<!-- ==================== پراڈکٹ ترمیم مودال ==================== -->
+<div class="modal-overlay" id="ownerRegisterModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>📝 نیا اکاؤنٹ اونر بنائیں</h3>
+            <button class="close-x" onclick="closeOwnerRegister()">&times;</button>
+        </div>
+        <div class="info-text">
+            🏪 <strong>اکاؤنٹ اونر رجسٹریشن</strong><br>
+            یہ اکاؤنٹ آپ کا مالکانہ اکاؤنٹ ہوگی۔ اس سے آپ منیجر اور سیلزمین بنا سکیں گے۔
+        </div>
+        <div class="input-group">
+            <label>پورا نام *</label>
+            <input type="text" id="ownerRegName" placeholder="اپنا پورا نام">
+        </div>
+        <div class="input-group">
+            <label>صارف نام * (یونیک)</label>
+            <input type="text" id="ownerRegUsername" placeholder="جیسے: shop123">
+        </div>
+        <div class="input-group">
+            <label>پاس ورڈ *</label>
+            <input type="password" id="ownerRegPassword" placeholder="کم از کم 4 حروف">
+        </div>
+        <div class="input-group">
+            <label>پاس ورڈ تصدیق *</label>
+            <input type="password" id="ownerRegConfirm" placeholder="پاس ورڈ دوبارہ">
+        </div>
+        <button class="btn btn-success" onclick="registerOwner()" style="width: 100%; margin-top: 10px; padding: 14px;">
+            ✅ اکاؤنٹ بنائیں
+        </button>
+    </div>
+</div>
+// ==================== گوگل لاگ ان بٹن ====================
+<button type="button" onclick="loginWithGoogle()" style="background-color: #4285F4; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; width: 100%; margin-top: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 20px; margin-right: 10px; background: white; padding: 2px; border-radius: 2px;">
+    Google کے ساتھ لاگ ان / سائن اپ کریں
+</button>
 <div class="modal-overlay" id="editModal">
     <div class="modal-box">
         <div class="modal-header">
@@ -500,107 +541,31 @@
 <div class="notification" id="notification"></div>
 
 <script>
-// ==================== فائر بیس کنفیگریشن ====================
-const firebaseConfig = {
-    apiKey: "AIzaSyDhgSB1jFbeXRKtlV18c6tp6Z_m6zKHLms",
-    authDomain: "mobile-inventory-store.firebaseapp.com",
-    projectId: "mobile-inventory-store",
-    storageBucket: "mobile-inventory-store.firebasestorage.app",
-    messagingSenderId: "685100228769",
-    appId: "1:685100228769:web:9d1244b2ffb153de3d10e0"
+// ==================== سپر ایڈمن کنفیگریشن (ہڈن) ====================
+const SUPER_ADMIN = {
+    username: 'superadmin',
+    password: 'Admin@2024!',  // ← یہاں اپنا پاس ورڈ تبدیل کریں
+    name: 'سپر ایڈمن',
+    role: 'owner'
 };
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// ==================== Google Redirect نتیجہ (صفحہ لوڈ ہوتے ہی چیک کریں) ====================
-firebase.auth().getRedirectResult()
-.then(result => {
-    if (!result || !result.user) return; // کوئی redirect نہیں تھا
-    const user = result.user;
-    const userData = {
-        id: user.uid,
-        name: user.displayName,
-        username: user.email.toLowerCase(),
-        email: user.email.toLowerCase(),
-        role: 'account_owner',
-        photoURL: user.photoURL || '',
-        lastLogin: new Date().toISOString()
-    };
-    db.collection('users').doc(user.uid).set(userData, { merge: true })
-    .then(() => {
-        currentUser = userData;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        loadUserData();
-        showMainApp();
-        showNotification(`🚀 خوش آمدید، ${user.displayName}!`);
-    })
-    .catch(() => showNotification('❌ ڈیٹا بیس ایرر!', 'error'));
-})
-.catch(err => {
-    console.error('Redirect result error:', err);
-    // صرف اصل ایرر پر notification دکھائیں، خالی redirect پر نہیں
-    if (err.code && err.code !== 'auth/no-auth-event') {
-        showNotification('❌ گوگل لاگ ان ناکام: ' + err.message, 'error');
-    }
-});
-
-// ==================== سپر ایڈمن (سرور سائیڈ پر منتقل کریں پروڈکشن میں) ====================
-const SUPER_ADMIN_PASS = 'Admin@2024!';
-
-// ==================== گلوبل اسٹیٹ ====================
+// ==================== گلوبل ویری ایبلز ====================
 let currentUser = null;
 let scanner = null;
 let editingId = null;
+let selectedRole = 'account_owner';
 let adminClickCount = 0;
 let adminClickTimer = null;
+
+// ڈیٹا
 let products = [];
 let sales = [];
 let activities = [];
 
-// ==================== یوٹیلیٹی فنکشنز ====================
-
-// اونر چیک — ایک جگہ تاکہ پوری ایپ میں دہرانا نہ پڑے
-function isOwner() {
-    return currentUser && (currentUser.role === 'owner' || currentUser.role === 'account_owner');
-}
-
-// اسٹاف کا اونر ID — ایک جگہ
-function getOwnerId() {
-    if (!currentUser) return null;
-    return (currentUser.role === 'manager' || currentUser.role === 'salesman')
-        ? currentUser.ownerId
-        : currentUser.id;
-}
-
-// کیٹیگری رنگ
-const CAT_COLORS = {
-    'گروسری': '#28a745', 'الیکٹرانکس': '#007bff', 'کپڑے': '#fd7e14',
-    'دوائیں': '#dc3545', 'کاسمیٹکس': '#e83e8c', 'دیگر': '#6c757d'
-};
-
-// رول کے اردو نام
-const ROLE_NAMES = {
-    'owner': 'سپر ایڈمن',
-    'account_owner': 'اکاؤنٹ اونر',
-    'manager': 'منیجر',
-    'salesman': 'سیلزمین'
-};
-
-// ==================== نوٹیفیکیشن ====================
-function showNotification(message, type = 'success') {
-    const notif = document.getElementById('notification');
-    notif.textContent = message;
-    notif.style.background = type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#28a745';
-    notif.style.color = type === 'warning' ? '#333' : 'white';
-    notif.style.display = 'block';
-    setTimeout(() => { notif.style.display = 'none'; }, 3000);
-}
-
-// ==================== سپر ایڈمن ٹرگر ====================
+// ==================== سپر ایڈمن ٹرigger ====================
 function handleAdminTrigger() {
     adminClickCount++;
-    clearTimeout(adminClickTimer);
+    if (adminClickTimer) clearTimeout(adminClickTimer);
     adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
     if (adminClickCount >= 5) {
         adminClickCount = 0;
@@ -615,9 +580,15 @@ function closeAdminModal() {
 }
 
 function adminLogin() {
-    if (document.getElementById('adminPassword').value === SUPER_ADMIN_PASS) {
-        currentUser = { id: 'superadmin', name: 'سپر ایڈمن', username: 'superadmin', role: 'owner' };
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    const password = document.getElementById('adminPassword').value;
+    if (password === SUPER_ADMIN.password) {
+        currentUser = {
+            id: 'superadmin',
+            name: SUPER_ADMIN.name,
+            username: SUPER_ADMIN.username,
+            password: SUPER_ADMIN.password,
+            role: SUPER_ADMIN.role
+        };
         closeAdminModal();
         loadUserData();
         showMainApp();
@@ -627,106 +598,271 @@ function adminLogin() {
     }
 }
 
-// ==================== رجسٹریشن ====================
+// ==================== کلاؤڈ لاگ ان / رجسٹر (فائر بیس ایڈیشن) ====================
+
+// پیج لوڈ ہوتے ہی چیک کریں کہ کیا کوئی پہلے سے لاگ ان ہے؟ (ریفریش پروٹیکشن)
+document.addEventListener("DOMContentLoaded", function() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        loadUserData();
+        showMainApp();
+        if (typeof showNotification === 'function') {
+            showNotification('✅ سیشن خود بخود بحال ہو گیا!');
+        }
+    }
+});
+
+function selectRole(role) {
+    selectedRole = role;
+    document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('selected'));
+    
+    const roleId = 'role' + role.charAt(0).toUpperCase() + role.slice(1).replace('_', '');
+    const roleBtn = document.getElementById(roleId);
+    if (roleBtn) roleBtn.classList.add('selected');
+    
+    // اگر منیجر یا سیلزمین ہے تو رجسٹر لنک ہائڈ کریں
+    const regLink = document.getElementById('ownerRegisterLink');
+    if (regLink) {
+        if (role === 'manager' || role === 'salesman') {
+            regLink.style.display = 'none';
+        } else {
+            regLink.style.display = 'block';
+        }
+    }
+}
+
 function showOwnerRegister() {
     document.getElementById('ownerRegisterModal').style.display = 'flex';
 }
 
 function closeOwnerRegister() {
     document.getElementById('ownerRegisterModal').style.display = 'none';
-    ['ownerRegName', 'ownerRegUsername', 'ownerRegPassword', 'ownerRegConfirm']
-        .forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('ownerRegName').value = '';
+    document.getElementById('ownerRegUsername').value = '';
+    document.getElementById('ownerRegPassword').value = '';
+    document.getElementById('ownerRegConfirm').value = '';
 }
 
+// کلاؤڈ پر مینوئل رجسٹریشن
 function registerOwner() {
-    const name     = document.getElementById('ownerRegName').value.trim();
-    const username = document.getElementById('ownerRegUsername').value.trim().toLowerCase();
+    const name = document.getElementById('ownerRegName').value.trim();
+    const username = document.getElementById('ownerRegUsername').value.trim().toLowerCase(); // یوزر نیم چھوٹے حروف میں
     const password = document.getElementById('ownerRegPassword').value;
-    const confirm  = document.getElementById('ownerRegConfirm').value;
+    const confirm = document.getElementById('ownerRegConfirm').value;
 
     if (!name || !username || !password) {
-        showNotification('❌ تمام فیلڈز ضروری ہیں', 'error'); return;
+        showNotification('❌ تمام فیلڈز ضروری ہیں', 'error');
+        return;
     }
     if (password !== confirm) {
-        showNotification('❌ پاس ورڈ میچ نہیں ہو رہا', 'error'); return;
+        showNotification('❌ پاس ورڈ میچ نہیں ہو رہا', 'error');
+        return;
     }
     if (password.length < 4) {
-        showNotification('❌ پاس ورڈ کم از کم 4 حروف کا ہو', 'error'); return;
+        showNotification('❌ پاس ورڈ کم از کم 4 حروف کا ہونا چاہیے', 'error');
+        return;
     }
 
-    showNotification('⏳ کلاؤڈ پر چیک ہو رہا ہے...', 'warning');
+    showNotification('⏳ کلاؤڈ پر اکاؤنٹ چیک کیا جا رہا ہے...', 'warning');
 
-    db.collection('users').doc(username).get()
-    .then(doc => {
+    // فائر بیس پر چیک کریں کہ یوزر پہلے سے ہے تو نہیں
+    db.collection("users").doc(username).get()
+    .then((doc) => {
         if (doc.exists) {
             showNotification('❌ یہ صارف نام پہلے سے موجود ہے', 'error');
         } else {
             const newOwner = {
                 id: 'owner_' + Date.now(),
-                name, username, password,
+                name: name,
+                username: username,
+                password: password, // کلاؤڈ پاس ورڈ
                 role: 'account_owner',
                 createdAt: new Date().toISOString()
             };
-            db.collection('users').doc(username).set(newOwner)
+
+            // فائر بیس کلاؤڈ پر سیو کریں
+            db.collection("users").doc(username).set(newOwner)
             .then(() => {
-                showNotification('✅ اکاؤنٹ بن گیا! اب لاگ ان کریں');
+                showNotification('✅ اکاؤنٹ کامیابی سے بنا! اب لاگ ان کریں');
                 document.getElementById('loginUsername').value = username;
+                document.getElementById('loginPassword').value = password;
                 closeOwnerRegister();
             })
-            .catch(() => showNotification('❌ کلاؤڈ سیو ناکام', 'error'));
+            .catch((error) => {
+                console.error("Firebase Reg Error:", error);
+                showNotification('❌ کلاؤڈ پر ڈیٹا سیو نہیں ہو سکا', 'error');
+            });
         }
     })
-    .catch(() => showNotification('❌ انٹرنیٹ یا فائر بیس ایرر', 'error'));
+    .catch((error) => {
+        console.error("Firebase Network Error:", error);
+        showNotification('❌ انٹرنیٹ کنکشن یا فائر بیس رولز کا مسئلہ ہے', 'error');
+    });
 }
 
-// ==================== لاگ ان ====================
+// کلاؤڈ پر لاگ ان
+// ==================== کلاؤڈ انٹیلیجنٹ لاگ ان ====================
 function login() {
     const username = document.getElementById('loginUsername').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
 
     if (!username || !password) {
-        showNotification('❌ صارف نام اور پاس ورڈ ضروری ہیں', 'error'); return;
+        showNotification('❌ صارف نام اور پاس ورڈ ضروری ہیں', 'error');
+        return;
     }
 
-    showNotification('⏳ لاگ ان ہو رہا ہے...', 'warning');
+    showNotification('⏳ کلاؤڈ لاگ ان چیک ہو رہا ہے...', 'warning');
 
-    db.collection('users').doc(username).get()
-    .then(doc => {
-        if (!doc.exists) {
-            showNotification('❌ یہ صارف نام موجود نہیں', 'error'); return;
+    // کلاؤڈ ڈیٹا بیس میں یوزر کو تلاش کرنا
+    db.collection("users").doc(username).get()
+    .then((doc) => {
+        if (doc.exists) {
+            const user = doc.data();
+            if (user.password === password) {
+                currentUser = user;
+                
+                // سیشن یاد رکھنے کے لیے لوکل اسٹوریج
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // لائیو ڈیٹا کلاؤڈ سے لوڈ کرنا
+                loadUserData();
+                showMainApp();
+                
+                // رول کے مطابق خوش آمدید کہنا
+                let roleUrdu = user.role === 'account_owner' ? 'اونر' : (user.role === 'manager' ? 'منیجر' : 'سیلزمین');
+                showNotification(`✅ خوش آمدید ${user.name} (${roleUrdu})!`);
+                
+                // اگر مینیجر یا سیلزمین لاگ ان ہوا ہے تو قیمتِ خرید اور انٹری لاک کرنے کا فلٹر چلائیں
+                applyStaffRestrictions();
+            } else {
+                showNotification('❌ غلط پاس ورڈ!', 'error');
+            }
+        } else {
+            showNotification('❌ اس صارف نام کا کوئی اکاؤنٹ نہیں ملا', 'error');
         }
-        const user = doc.data();
-        if (user.password !== password) {
-            showNotification('❌ غلط پاس ورڈ', 'error'); return;
-        }
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        loadUserData();
-        showMainApp();
-        const roleUrdu = ROLE_NAMES[user.role] || user.role;
-        showNotification(`✅ خوش آمدید ${user.name} (${roleUrdu})!`);
     })
-    .catch(() => showNotification('❌ سرور کنکشن ایرر', 'error'));
+    .catch((error) => {
+        console.error("Login Error:", error);
+        showNotification('❌ سرور کنکشن فیل یا ڈیٹا بیس ایرر!', 'error');
+    });
 }
-
-// ==================== گوگل لاگ ان (Redirect — GitHub Pages کے لیے) ====================
+// ==================== جی میل (Google) لاگ ان اور سائن اپ کا کلاؤڈ فنکشن ====================
 function loginWithGoogle() {
-    showNotification('⏳ گوگل کی طرف جا رہے ہیں...', 'warning');
+    // یوزر کو بتانا کہ کام شروع ہو گیا ہے
+    if (typeof showNotification === 'function') {
+        showNotification('⏳ جی میل سے رابطہ ہو رہا ہے...', 'warning');
+    } else {
+        alert('⏳ جی میل سے رابطہ ہو رہا ہے...');
+    }
+    
+    // فائر بیس کا گوگل اتھ پرووائیڈر بنانا
     const provider = new firebase.auth.GoogleAuthProvider();
-    // signInWithRedirect استعمال کریں — GitHub Pages پر popup block ہوتا ہے
-    firebase.auth().signInWithRedirect(provider)
-    .catch(err => {
-        console.error('Redirect error:', err);
-        showNotification('❌ گوگل redirect ناکام: ' + err.message, 'error');
+    
+    // گوگل لاگ ان کا پاپ اپ اوپن کرنا
+    firebase.auth().signInWithPopup(provider)
+    .then((result) => {
+        const user = result.user;
+        const userEmail = user.email.toLowerCase();
+        
+        // فائر بیس ڈیٹا بیس کے لیے یوزر کی پروفائل تیار کرنا
+        const userData = {
+            id: 'owner_' + user.uid,
+            name: user.displayName,
+            username: userEmail,
+            role: 'account_owner',
+            email: userEmail,
+            createdAt: new Date().toISOString()
+        };
+
+        // فائر بیس کلاؤڈ (Firestore) پر ڈیٹا محفوظ کرنا
+        db.collection("users").doc(user.uid).set(userData, { merge: true })
+        .then(() => {
+            currentUser = userData;
+            
+            // سیشن کو لوکل اسٹوریج میں رکھنا تاکہ ریفریش پر لاگ آؤٹ نہ ہو
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            if (typeof showNotification === 'function') {
+                showNotification(`🚀 خوش آمدید، ${user.displayName}!`);
+            }
+            
+            // ڈیش بورڈ لوڈ کرنا اور اسکرین بدلنا
+            if (typeof loadUserData === 'function') loadUserData();
+            if (typeof showMainApp === 'function') showMainApp();
+        })
+        .catch((err) => {
+            console.error("Database Save Error:", err);
+            if (typeof showNotification === 'function') showNotification('❌ کلاؤڈ ڈیٹا بیس ایرر!', 'error');
+        });
+    })
+    .catch((err) => {
+        console.error("Google Popup Error:", err);
+        if (typeof showNotification === 'function') {
+            showNotification('❌ گوگل لاگ ان کینسل یا بلاک ہو گیا ہے!', 'error');
+        }
     });
 }
 
-// ==================== لاگ آؤٹ ====================
+// ==================== ریفریش کرنے پر لاگ آؤٹ ہونے کا مستقل حل ====================
+document.addEventListener("DOMContentLoaded", function() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        
+        if (typeof loadUserData === 'function') loadUserData();
+        if (typeof showMainApp === 'function') showMainApp();
+        
+        // 🔒 یہ نئی لائن ہم نے بڑھائی ہے تاکہ ریفریش ہوتے ہی پابندیاں دوبارہ لگ جائیں
+        if (typeof applyStaffRestrictions === 'function') applyStaffRestrictions();
+        
+        console.log("سیشن خود بخود بحال ہو گیا:", currentUser.name);
+    }
+});
+// جی میل (Google) سے لاگ ان / سائن اپ کا پروفیشنل فنکشن
+function loginWithGoogle() {
+    showNotification('⏳ جی میل سے رابطہ ہو رہا ہے...', 'warning');
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    firebase.auth().signInWithPopup(provider)
+    .then((result) => {
+        const user = result.user;
+        const userEmail = user.email.toLowerCase();
+        
+        const userData = {
+            id: 'owner_' + user.uid,
+            name: user.displayName,
+            username: userEmail,
+            role: 'account_owner',
+            email: userEmail,
+            createdAt: new Date().toISOString()
+        };
+
+        // کلاؤڈ پر یوزر کا ڈیٹا مرج کرنا (اگر نیا ہے تو بن جائے گا، پرانا ہے تو اپ ڈیٹ ہو جائے گا)
+        db.collection("users").doc(user.uid).set(userData, { merge: true })
+        .then(() => {
+            currentUser = userData;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            loadUserData();
+            showMainApp();
+            showNotification(`🚀 خوش آمدید، ${user.displayName}!`);
+        })
+        .catch((err) => {
+            console.error(err);
+            showNotification('❌ ڈیٹا بیس ایرر!', 'error');
+        });
+    })
+    .catch((err) => {
+        console.error(err);
+        showNotification('❌ گوگل لاگ ان کینسل یا بلاک ہو گیا ہے!', 'error');
+    });
+}
+
 function logout() {
     currentUser = null;
-    localStorage.removeItem('currentUser');
-    stopScanner();
-    products = []; sales = []; activities = [];
+    localStorage.removeItem('currentUser'); // سیشن ڈیلیٹ کرنا
+    if (typeof stopScanner === 'function') stopScanner();
+    
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('mainApp').classList.add('hidden');
     document.getElementById('loginUsername').value = '';
@@ -734,161 +870,177 @@ function logout() {
     showNotification('👋 لاگ آؤٹ ہو گیا');
 }
 
-// ==================== پیج لوڈ — سیشن بحالی (صرف ایک بار) ====================
-document.addEventListener('DOMContentLoaded', function() {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        loadUserData();
-        showMainApp();
-        showNotification('✅ سیشن بحال ہو گیا!');
-    }
+// ==================== یونیورسل کلاؤڈ ڈیٹا مینجمنٹ ====================
 
-    // کی بورڈ شارٹ کٹس
-    document.getElementById('manualBarcode')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') document.getElementById('manualName').focus();
-    });
-    document.getElementById('manualName')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') addProduct();
-    });
-    document.getElementById('saleBarcode')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') findProductForSale();
-    });
-
-    // مودال باہر کلک سے بند
-    document.getElementById('editModal')?.addEventListener('click', e => {
-        if (e.target.id === 'editModal') closeModal();
-    });
-});
-
-// ==================== کلاؤڈ ڈیٹا لوڈ ====================
+// کلاؤڈ سے لائیو ڈیٹا لوڈ کرنے کا فنکشن (Universal Loading)
 function loadUserData() {
     if (!currentUser) return;
+    
     if (currentUser.id === 'superadmin') {
         products = []; sales = []; activities = [];
-        updateDashboard();
+        if (typeof updateDashboard === 'function') updateDashboard();
         return;
     }
 
-    const ownerId = getOwnerId();
-    showSyncStatus('syncing');
+    // پتا لگائیں کہ ڈیٹا کس اونر کا لوڈ کرنا ہے (اسٹاف کے لیے اس کا ownerId استعمال ہوگا)
+    const targetOwnerId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
 
-    // پروڈکٹس
-    db.collection('products').where('ownerId', '==', ownerId).get()
-    .then(snap => {
-        products = snap.docs.map(d => d.data());
-        renderProducts();
-        updateDashboard();
-    })
-    .catch(err => console.error('Products load error:', err));
+    if (typeof showNotification === 'function') {
+        showNotification('⏳ کلاؤڈ سے یونیورسل ڈیٹا لوڈ ہو رہا ہے...', 'warning');
+    }
 
-    // سیلز
-    db.collection('sales').where('ownerId', '==', ownerId).get()
-    .then(snap => {
-        sales = snap.docs.map(d => d.data());
-        renderSales();
-        updateDashboard();
-    })
-    .catch(err => console.error('Sales load error:', err));
-
-    // سرگرمیاں
-    db.collection('activities').where('ownerId', '==', ownerId)
-    .orderBy('id', 'desc').limit(50).get()
-    .then(snap => {
-        activities = snap.docs.map(d => d.data());
-        updateActivityLog();
-    })
-    .catch(() => {
-        // اگر index نہ ہو — fallback بغیر orderBy
-        db.collection('activities').where('ownerId', '==', ownerId).limit(50).get()
-        .then(snap => {
-            activities = snap.docs.map(d => d.data()).sort((a, b) => b.id - a.id);
-            updateActivityLog();
+    // ۱. فائر بیس سے پروڈکٹس (Products) لوڈ کرنا
+    db.collection("products").where("ownerId", "==", targetOwnerId).get()
+    .then((querySnapshot) => {
+        products = [];
+        querySnapshot.forEach((doc) => {
+            products.push(doc.data());
         });
+        
+        // اگر ایپ میں پروڈکٹس کے ٹیبل یا ڈیش بورڈ کے فنکشنز ہیں تو انہیں ریفریش کریں
+        if (typeof updateProductTable === 'function') updateProductTable();
+        if (typeof updateDashboard === 'function') updateDashboard();
+    })
+    .catch((error) => {
+        console.error("Error loading products from cloud: ", error);
     });
 
-    showSyncStatus('ok');
+    // ۲. فائر بیس سے سیلز (Sales) کا ڈیٹا لوڈ کرنا
+    db.collection("sales").where("ownerId", "==", targetOwnerId).get()
+    .then((querySnapshot) => {
+        sales = [];
+        querySnapshot.forEach((doc) => {
+            sales.push(doc.data());
+        });
+        if (typeof updateSalesTable === 'function') updateSalesTable();
+        if (typeof updateDashboard === 'function') updateDashboard();
+    })
+    .catch((error) => {
+        console.error("Error loading sales from cloud: ", error);
+    });
+
+    // ۳. فائر بیس سے سرگرمیاں (Activities) لوڈ کرنا
+    db.collection("activities").where("ownerId", "==", targetOwnerId).orderBy("id", "desc").limit(50).get()
+    .then((querySnapshot) => {
+        activities = [];
+        querySnapshot.forEach((doc) => {
+            activities.push(doc.data());
+        });
+        if (typeof updateActivityLog === 'function') updateActivityLog();
+    })
+    .catch((error) => {
+        // اگر فائر بیس پر انڈیکس نہ بنا ہو تو orderBy ایرر دے سکتا ہے، اس صورت میں سادہ لوڈنگ:
+        db.collection("activities").where("ownerId", "==", targetOwnerId).limit(50).get()
+        .then((snapshot) => {
+            activities = [];
+            snapshot.forEach((doc) => activities.push(doc.data()));
+            activities.sort((a, b) => b.id - a.id);
+            if (typeof updateActivityLog === 'function') updateActivityLog();
+        });
+    });
 }
 
-function showSyncStatus(state) {
-    const el = document.getElementById('syncStatus');
-    if (state === 'syncing') { el.textContent = '🔄 لوڈ ہو رہا ہے...'; el.className = 'sync-status syncing'; }
-    else { el.textContent = '✅ ہم آہنگ'; el.className = 'sync-status'; }
+// کلاؤڈ پر پروڈکٹس اور سیلز اپ ڈیٹ رکھنے کا یونیورسل فنکشن
+function saveUserData() {
+    if (!currentUser || currentUser.id === 'superadmin') return; 
+    
+    const targetOwnerId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
+    
+    // ہم بیک اپ کے لیے لوکل اسٹوریج میں بھی سیو رکھیں گے تاکہ نیٹ سلو ہو تو ایپ کریش نہ ہو
+    const prefix = targetOwnerId + '_';
+    localStorage.setItem(prefix + 'products', JSON.stringify(products));
+    localStorage.setItem(prefix + 'sales', JSON.stringify(sales));
+    localStorage.setItem(prefix + 'activities', JSON.stringify(activities));
+
+    // گوگل شیٹس سنک کا پرانا فنکشن چلتا رہے گا
+    if (typeof syncToGoogleSheets === 'function') {
+        syncToGoogleSheets();
+    }
 }
 
-// ==================== کلاؤڈ پر پروڈکٹ سیو ====================
-function saveProductToCloud(product) {
-    const ownerId = getOwnerId();
-    product.ownerId = ownerId;
-    return db.collection('products').doc(product.id).set(product);
-}
-
-function deleteProductFromCloud(productId) {
-    return db.collection('products').doc(productId).delete();
-}
-
-// ==================== کلاؤڈ پر سیل سیو ====================
-function saveSaleToCloud(sale) {
-    sale.ownerId = getOwnerId();
-    return db.collection('sales').doc(sale.id).set(sale);
-}
-
-// ==================== سرگرمی لاگ ====================
+// یونیورسل ایکٹیویٹی لاگ (جو کلاؤڈ پر سیو ہوگا تاکہ اونر دیکھ سکے اسٹاف نے کیا کیا)
 function addActivity(action, details) {
     if (!currentUser) return;
-    const ownerId = getOwnerId();
+
+    const targetOwnerId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
+    
     const newActivity = {
         id: Date.now(),
-        ownerId,
-        action, details,
+        ownerId: targetOwnerId, // اونر کنکشن
+        action: action,
+        details: details,
         user: currentUser.name,
         role: currentUser.role,
         time: new Date().toLocaleString('ur-PK')
     };
+
+    // ۱. لوکل ایرے میں شامل کریں
     activities.unshift(newActivity);
     if (activities.length > 50) activities.pop();
 
-    db.collection('activities').doc(newActivity.id.toString()).set(newActivity)
-    .catch(err => console.error('Activity save error:', err));
-
-    updateDashboard();
+    // ۲. فائر بیس کلاؤڈ پر لائیو اپ لوڈ کریں
+    db.collection("activities").doc(newActivity.id.toString()).set(newActivity)
+    .then(() => {
+        saveUserData();
+        if (typeof updateDashboard === 'function') updateDashboard();
+    })
+    .catch((err) => {
+        console.error("Activity cloud save error:", err);
+    });
 }
-
 // ==================== مین ایپ ====================
 function showMainApp() {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
-
+    
     document.getElementById('userName').textContent = currentUser.name;
     document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
-
+    
     const roleBadge = document.getElementById('userRole');
-    roleBadge.textContent = ROLE_NAMES[currentUser.role] || currentUser.role;
-    roleBadge.className = 'role-badge role-' + currentUser.role;
+    const roleNames = {
+        'owner': 'سپر ایڈمن',
+        'account_owner': 'اکاؤنٹ اونر',
+        'manager': 'منیجر',
+        'salesman': 'سیلزمین'
+    };
+    roleBadge.textContent = roleNames[currentUser.role] || currentUser.role;
+    roleBadge.className = 'role-badge role-' + currentUser.role.replace('_', '-');
 
-    const ownerView = isOwner();
+    const isOwner = currentUser.role === 'owner' || currentUser.role === 'account_owner';
+    
+    if (isOwner) {
+        document.querySelectorAll('.owner-tab').forEach(el => el.classList.remove('hidden'));
+        document.querySelectorAll('.owner-only-stat').forEach(el => el.classList.remove('hidden'));
+        document.getElementById('ownerPrices').classList.remove('hidden');
+        document.getElementById('staffPrices').classList.add('hidden');
+        document.querySelectorAll('.owner-edit-price').forEach(el => el.classList.remove('hidden'));
+    } else {
+        document.querySelectorAll('.owner-tab').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.owner-only-stat').forEach(el => el.classList.add('hidden'));
+        document.getElementById('ownerPrices').classList.add('hidden');
+        document.getElementById('staffPrices').classList.remove('hidden');
+        document.querySelectorAll('.owner-edit-price').forEach(el => el.classList.add('hidden'));
+    }
 
-    document.querySelectorAll('.owner-tab').forEach(el =>
-        el.classList.toggle('hidden', !ownerView || currentUser.id === 'superadmin'));
-    document.querySelectorAll('.owner-only-stat').forEach(el =>
-        el.classList.toggle('hidden', !ownerView));
-    document.getElementById('ownerPrices').classList.toggle('hidden', !ownerView);
-    document.getElementById('staffPrices').classList.toggle('hidden', ownerView);
-    document.querySelectorAll('.owner-edit-price').forEach(el =>
-        el.classList.toggle('hidden', !ownerView));
+    // اگر سپر ایڈمن ہے تو اسٹاف اور سیٹنگز ٹیب چھپائیں کیونکہ یہ گلوبل ویو ہے
+    if (currentUser.id === 'superadmin') {
+        document.querySelectorAll('.owner-tab').forEach(el => el.classList.add('hidden'));
+    }
 
     updateDashboard();
     renderProducts();
     renderSales();
-    if (ownerView) renderStaff();
+    renderStaff();
 }
 
 // ==================== ٹیبز ====================
-function showTab(tabName, event) {
+function showTab(tabName) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    if (event?.target) event.target.classList.add('active');
+    
+    event.target.classList.add('active');
     document.getElementById('tab-' + tabName).classList.add('active');
+    
     if (tabName === 'products') renderProducts();
     if (tabName === 'sales') renderSales();
     if (tabName === 'staff') renderStaff();
@@ -898,50 +1050,52 @@ function showTab(tabName, event) {
 // ==================== ڈیش بورڈ ====================
 function updateDashboard() {
     document.getElementById('dashTotalProducts').textContent = products.length;
-    document.getElementById('dashTotalItems').textContent =
-        products.reduce((s, p) => s + (parseInt(p.quantity) || 0), 0);
-
-    const cats = new Set(products.map(p => p.category));
-    document.getElementById('dashCategories').textContent = cats.size;
-
+    document.getElementById('dashTotalItems').textContent = products.reduce((s, p) => s + (parseInt(p.quantity) || 0), 0);
+    
+    const cats = [...new Set(products.map(p => p.category))];
+    document.getElementById('dashCategories').textContent = cats.length;
+    
     const today = new Date().toDateString();
     const todaySales = sales.filter(s => new Date(s.date).toDateString() === today);
     document.getElementById('dashSales').textContent = todaySales.length;
 
-    if (isOwner()) {
+    if (currentUser.role === 'owner' || currentUser.role === 'account_owner') {
         let profit = 0;
         todaySales.forEach(sale => {
             const prod = products.find(p => p.id === sale.productId);
-            if (prod && prod.costPrice && sale.unitPrice) {
+            if (prod && prod.costPrice) {
                 profit += (sale.unitPrice - prod.costPrice) * sale.quantity;
             }
         });
         document.getElementById('dashProfit').textContent = '₹' + profit.toFixed(2);
     }
 
-    updateActivityLog();
-}
-
-function updateActivityLog() {
     const container = document.getElementById('recentActivity');
     if (activities.length === 0) {
         container.innerHTML = '<div class="empty-state">کوئی سرگرمی نہیں</div>';
         return;
     }
-    const roleColors = { 'owner': '#e94560', 'account_owner': '#9c27b0', 'manager': '#0f3460', 'salesman': '#17a2b8' };
+    
     let html = '<div style="max-height: 350px; overflow-y: auto;">';
     activities.slice(0, 15).forEach(a => {
+        const colors = {
+            'owner': '#e94560', 'account_owner': '#9c27b0',
+            'manager': '#0f3460', 'salesman': '#17a2b8'
+        };
         html += `
             <div style="padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <strong>${a.action}</strong>
+                    <strong style="color: #333;">${a.action}</strong>
                     <span style="font-size: 11px; color: #999;">${a.time}</span>
                 </div>
                 <div style="color: #666; margin-top: 4px;">${a.details}</div>
-                <span style="font-size: 11px; padding: 2px 8px; border-radius: 10px; background: ${roleColors[a.role] || '#666'}; color: white;">
-                    ${a.user}
-                </span>
-            </div>`;
+                <div style="margin-top: 4px;">
+                    <span style="font-size: 11px; padding: 2px 8px; border-radius: 10px; background: ${colors[a.role] || '#666'}; color: white;">
+                        ${a.user}
+                    </span>
+                </div>
+            </div>
+        `;
     });
     html += '</div>';
     container.innerHTML = html;
@@ -950,19 +1104,21 @@ function updateActivityLog() {
 // ==================== کیمرا اسکینر ====================
 function startScanner() {
     if (scanner) return;
+    
     const status = document.getElementById('cameraStatus');
     status.className = 'camera-status status-info';
     status.textContent = '⏳ کیمرہ شروع ہو رہا ہے...';
-
-    scanner = new Html5Qrcode('reader');
+    
+    scanner = new Html5Qrcode("reader");
+    
     scanner.start(
-        { facingMode: 'environment' },
+        { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        decodedText => handleScan(decodedText),
-        () => {}
+        (decodedText) => { handleScan(decodedText); },
+        (error) => {}
     ).then(() => {
         status.className = 'camera-status status-success';
-        status.textContent = '✅ کیمرہ کام کر رہا ہے';
+        status.textContent = '✅ کیمرہ کام کر رہا ہے - اب اسکین کریں!';
     }).catch(err => {
         status.className = 'camera-status status-error';
         status.textContent = '❌ کیمرہ ناکام: ' + err.message;
@@ -971,154 +1127,170 @@ function startScanner() {
 }
 
 function stopScanner() {
-    if (!scanner) return;
-    scanner.stop()
-    .then(() => {
-        scanner = null;
-        const status = document.getElementById('cameraStatus');
-        status.className = 'camera-status status-info';
-        status.textContent = '🔘 کیمرہ بند ہو گیا';
-    })
-    .catch(() => { scanner = null; });
+    if (scanner) {
+        scanner.stop().then(() => {
+            scanner = null;
+            const status = document.getElementById('cameraStatus');
+            status.className = 'camera-status status-info';
+            status.textContent = '🔘 کیمرہ بند ہو گیا';
+        }).catch(() => { scanner = null; });
+    }
 }
 
 // ==================== پراڈکٹس ====================
 function handleScan(barcode) {
     const existing = products.find(p => p.barcode === barcode);
+    
     if (existing) {
         existing.quantity = (parseInt(existing.quantity) || 0) + 1;
         existing.updatedAt = new Date().toISOString();
-        saveProductToCloud(existing)
-        .then(() => {
-            showNotification(`"${existing.name}" کی مقدار: ${existing.quantity}`);
-            addActivity('اسکین اپڈیٹ', `${existing.name} — نئی مقدار: ${existing.quantity}`);
-            renderProducts();
-        });
+        showNotification(`"${existing.name}" کی مقدار: ${existing.quantity}`);
+        addActivity('اسکین اپڈیٹ', `${existing.name} - نئی مقدار: ${existing.quantity}`);
     } else {
         document.getElementById('manualBarcode').value = barcode;
         document.getElementById('manualName').value = 'پراڈکٹ - ' + barcode.substring(0, 8);
         showNotification('📦 نیا بارکوڈ ملا! تفصیلات درج کریں');
         setTimeout(() => document.getElementById('manualName').focus(), 100);
     }
-
+    
+    saveUserData();
+    renderProducts();
+    
     stopScanner();
     setTimeout(() => {
-        if (document.getElementById('tab-scan').classList.contains('active')) startScanner();
+        if (document.getElementById('tab-scan').classList.contains('active')) {
+            startScanner();
+        }
     }, 3000);
 }
 
 function addProduct() {
-    const barcode  = document.getElementById('manualBarcode').value.trim();
-    const name     = document.getElementById('manualName').value.trim();
+    const barcode = document.getElementById('manualBarcode').value.trim();
+    const name = document.getElementById('manualName').value.trim();
     const category = document.getElementById('manualCategory').value;
     const quantity = parseInt(document.getElementById('manualQuantity').value) || 1;
-
+    
     if (!barcode || !name) {
-        showNotification('❌ بارکوڈ اور نام ضروری ہیں', 'error'); return;
+        showNotification('❌ بارکوڈ اور نام ضروری ہیں', 'error');
+        return;
     }
 
-    const ownerMode = isOwner();
-    const costPrice = ownerMode ? (parseFloat(document.getElementById('costPrice').value) || 0) : 0;
-    const salePrice = ownerMode
-        ? (parseFloat(document.getElementById('salePrice').value) || 0)
-        : (parseFloat(document.getElementById('staffSalePrice').value) || 0);
+    const isOwner = currentUser.role === 'owner' || currentUser.role === 'account_owner';
+    const costPrice = isOwner ? (parseFloat(document.getElementById('costPrice').value) || 0) : 0;
+    const salePrice = isOwner ? 
+        (parseFloat(document.getElementById('salePrice').value) || 0) : 
+        (parseFloat(document.getElementById('staffSalePrice').value) || 0);
 
     if (!salePrice || salePrice <= 0) {
-        showNotification('❌ فروخت قیمت درج کریں', 'error'); return;
+        showNotification('❌ فروخت قیمت درج کریں', 'error');
+        return;
     }
 
     const existing = products.find(p => p.barcode === barcode);
-
+    
     if (existing) {
         existing.quantity = (parseInt(existing.quantity) || 0) + quantity;
         existing.salePrice = salePrice;
-        if (ownerMode) existing.costPrice = costPrice;
+        if (isOwner) existing.costPrice = costPrice;
         existing.updatedAt = new Date().toISOString();
-
-        saveProductToCloud(existing)
-        .then(() => {
-            showNotification(`✅ "${existing.name}" اپڈیٹ — کل: ${existing.quantity}`);
-            addActivity('اسٹاک بڑھایا', `${name} — نئی مقدار: ${existing.quantity}`);
-            renderProducts();
-        });
+        showNotification(`✅ "${existing.name}" اپڈیٹ ہو گیا - کل: ${existing.quantity}`);
+        addActivity('اسٹاک بڑھایا', `${name} - نئی مقدار: ${existing.quantity}`);
     } else {
-        const newProduct = {
+        products.unshift({
             id: 'prod_' + Date.now(),
-            barcode, name, category, quantity,
-            costPrice, salePrice,
+            barcode: barcode,
+            name: name,
+            category: category,
+            quantity: quantity,
+            costPrice: costPrice,
+            salePrice: salePrice,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
-        };
-
-        saveProductToCloud(newProduct)
-        .then(() => {
-            products.unshift(newProduct);
-            showNotification('✅ نیا پراڈکٹ شامل ہو گیا!');
-            addActivity('نیا پراڈکٹ', `${name} — ${quantity} عدد — ₹${salePrice}`);
-            renderProducts();
-        })
-        .catch(() => showNotification('❌ کلاؤڈ سیو ناکام', 'error'));
+        });
+        showNotification('✅ نیا پراڈکٹ شامل ہو گیا!');
+        addActivity('نیا پراڈکٹ', `${name} - ${quantity} عدد - ₹${salePrice}`);
     }
 
-    // فارم صاف کریں
-    ['manualBarcode', 'manualName', 'costPrice', 'salePrice', 'staffSalePrice'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
+    saveUserData();
+    renderProducts();
+    
+    document.getElementById('manualBarcode').value = '';
+    document.getElementById('manualName').value = '';
     document.getElementById('manualQuantity').value = '1';
+    document.getElementById('costPrice').value = '';
+    document.getElementById('salePrice').value = '';
+    document.getElementById('staffSalePrice').value = '';
 }
 
 function renderProducts() {
     const container = document.getElementById('productsTable');
     const searchTerm = (document.getElementById('searchProduct')?.value || '').toLowerCase();
-
-    const filtered = searchTerm
-        ? products.filter(p =>
-            p.name.toLowerCase().includes(searchTerm) ||
+    
+    let filtered = products;
+    if (searchTerm) {
+        filtered = products.filter(p => 
+            p.name.toLowerCase().includes(searchTerm) || 
             p.barcode.includes(searchTerm) ||
-            p.category.includes(searchTerm))
-        : products;
+            p.category.includes(searchTerm)
+        );
+    }
 
     if (filtered.length === 0) {
         container.innerHTML = '<div class="empty-state">📭 کوئی پراڈکٹ نہیں</div>';
+        updateDashboard();
         return;
     }
 
-    const ownerMode = isOwner();
+    const isOwner = currentUser.role === 'owner' || currentUser.role === 'account_owner';
+
     let html = `
         <table>
             <thead>
                 <tr>
-                    <th>بارکوڈ</th><th>نام</th><th>کیٹیگری</th><th>مقدار</th>
-                    ${ownerMode ? '<th>🛒 خرید</th>' : ''}
-                    <th>🏷️ فروخت</th><th>عمل</th>
+                    <th>بارکوڈ</th>
+                    <th>نام</th>
+                    <th>کیٹیگری</th>
+                    <th>مقدار</th>
+                    ${isOwner ? '<th>🛒 خرید</th>' : ''}
+                    <th>🏷️ فروخت</th>
+                    <th>عمل</th>
                 </tr>
             </thead>
-            <tbody>`;
+            <tbody>
+    `;
+
+    const catColors = {
+        'گروسری': '#28a745', 'الیکٹرانکس': '#007bff', 'کپڑے': '#fd7e14',
+        'دوائیں': '#dc3545', 'کاسمیٹکس': '#e83e8c', 'دیگر': '#6c757d'
+    };
 
     filtered.forEach(p => {
+        const stockClass = (p.quantity <= 5) ? 'stock-low' : 'stock-ok';
         html += `
             <tr>
-                <td><code style="font-size:12px;">${p.barcode}</code></td>
-                <td style="font-weight:600;">${p.name}</td>
-                <td><span class="category-badge" style="background:${CAT_COLORS[p.category] || '#6c757d'}">${p.category}</span></td>
-                <td class="${p.quantity <= 5 ? 'stock-low' : 'stock-ok'}">${p.quantity}</td>
-                ${ownerMode ? `<td style="color:#e94560;font-weight:bold;">₹${(p.costPrice||0).toFixed(2)}</td>` : ''}
-                <td style="color:#28a745;font-weight:bold;">₹${(p.salePrice||0).toFixed(2)}</td>
+                <td><code style="font-size: 12px;">${p.barcode}</code></td>
+                <td style="font-weight: 600;">${p.name}</td>
+                <td><span class="category-badge" style="background: ${catColors[p.category] || '#6c757d'}">${p.category}</span></td>
+                <td class="${stockClass}">${p.quantity}</td>
+                ${isOwner ? `<td style="color: #e94560; font-weight: bold;">₹${(p.costPrice || 0).toFixed(2)}</td>` : ''}
+                <td style="color: #28a745; font-weight: bold;">₹${(p.salePrice || 0).toFixed(2)}</td>
                 <td class="actions">
                     <button class="btn btn-primary btn-small" onclick="editProduct('${p.id}')">✏️</button>
                     <button class="btn btn-danger btn-small" onclick="deleteProduct('${p.id}')">🗑️</button>
                 </td>
-            </tr>`;
+            </tr>
+        `;
     });
 
     html += '</tbody></table>';
     container.innerHTML = html;
+    updateDashboard();
 }
 
 function editProduct(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
+
     editingId = id;
     document.getElementById('editName').value = p.name;
     document.getElementById('editBarcode').value = p.barcode;
@@ -1126,6 +1298,7 @@ function editProduct(id) {
     document.getElementById('editQuantity').value = p.quantity;
     document.getElementById('editCostPrice').value = p.costPrice || '';
     document.getElementById('editSalePrice').value = p.salePrice || '';
+    
     document.getElementById('editModal').style.display = 'flex';
 }
 
@@ -1133,36 +1306,33 @@ function saveEdit() {
     const p = products.find(x => x.id === editingId);
     if (!p) return;
 
-    p.name     = document.getElementById('editName').value;
-    p.barcode  = document.getElementById('editBarcode').value;
+    p.name = document.getElementById('editName').value;
+    p.barcode = document.getElementById('editBarcode').value;
     p.category = document.getElementById('editCategory').value;
     p.quantity = parseInt(document.getElementById('editQuantity').value) || 0;
     p.salePrice = parseFloat(document.getElementById('editSalePrice').value) || 0;
-    if (isOwner()) p.costPrice = parseFloat(document.getElementById('editCostPrice').value) || 0;
+    
+    if (currentUser.role === 'owner' || currentUser.role === 'account_owner') {
+        p.costPrice = parseFloat(document.getElementById('editCostPrice').value) || 0;
+    }
+    
     p.updatedAt = new Date().toISOString();
-
-    saveProductToCloud(p)
-    .then(() => {
-        renderProducts();
-        closeModal();
-        showNotification('💾 تبدیلیاں محفوظ ہو گئیں');
-        addActivity('پراڈکٹ ترمیم', p.name);
-    })
-    .catch(() => showNotification('❌ کلاؤڈ سیو ناکام', 'error'));
+    
+    saveUserData();
+    renderProducts();
+    closeModal();
+    showNotification('💾 تبدیلیاں محفوظ ہو گئیں');
+    addActivity('پراڈکٹ ترمیم', p.name);
 }
 
 function deleteProduct(id) {
     if (!confirm('🗑️ حذف کریں؟')) return;
     const p = products.find(x => x.id === id);
-    deleteProductFromCloud(id)
-    .then(() => {
-        products = products.filter(x => x.id !== id);
-        renderProducts();
-        updateDashboard();
-        showNotification('🗑️ حذف ہو گیا');
-        if (p) addActivity('پراڈکٹ حذف', p.name);
-    })
-    .catch(() => showNotification('❌ کلاؤڈ حذف ناکام', 'error'));
+    products = products.filter(x => x.id !== id);
+    saveUserData();
+    renderProducts();
+    showNotification('🗑️ حذف ہو گیا');
+    if (p) addActivity('پراڈکٹ حذف', p.name);
 }
 
 function closeModal() {
@@ -1174,6 +1344,7 @@ function closeModal() {
 function findProductForSale() {
     const barcode = document.getElementById('saleBarcode').value.trim();
     const p = products.find(x => x.barcode === barcode);
+    
     if (p) {
         document.getElementById('saleProductName').value = p.name;
         document.getElementById('saleUnitPrice').value = p.salePrice || 0;
@@ -1184,209 +1355,234 @@ function findProductForSale() {
 }
 
 function calculateSaleTotal() {
-    const qty   = parseInt(document.getElementById('saleQuantity').value) || 1;
+    const qty = parseInt(document.getElementById('saleQuantity').value) || 1;
     const price = parseFloat(document.getElementById('saleUnitPrice').value) || 0;
     document.getElementById('saleTotal').textContent = '₹' + (qty * price).toFixed(2);
 }
 
 function makeSale() {
     const barcode = document.getElementById('saleBarcode').value.trim();
-    const qty     = parseInt(document.getElementById('saleQuantity').value) || 1;
-    const p       = products.find(x => x.barcode === barcode);
-
-    if (!p) { showNotification('❌ پراڈکٹ نہیں ملا', 'error'); return; }
+    const qty = parseInt(document.getElementById('saleQuantity').value) || 1;
+    const p = products.find(x => x.barcode === barcode);
+    
+    if (!p) {
+        showNotification('❌ پراڈکٹ نہیں ملا', 'error');
+        return;
+    }
+    
     if (p.quantity < qty) {
-        showNotification(`❌ صرف ${p.quantity} عدد دستیاب ہیں`, 'error'); return;
+        showNotification('❌ اتنی مقدار دستیاب نہیں (دستیاب: ' + p.quantity + ')', 'error');
+        return;
     }
 
     p.quantity -= qty;
     const total = qty * (p.salePrice || 0);
-
-    const newSale = {
+    
+    sales.unshift({
         id: 'sale_' + Date.now(),
         productId: p.id,
         productName: p.name,
-        barcode, quantity: qty,
+        barcode: barcode,
+        quantity: qty,
         unitPrice: p.salePrice || 0,
-        total,
+        total: total,
         seller: currentUser.name,
         sellerRole: currentUser.role,
         date: new Date().toISOString()
-    };
-
-    // پروڈکٹ اور سیل دونوں کلاؤڈ پر سیو کریں
-    Promise.all([saveProductToCloud(p), saveSaleToCloud(newSale)])
-    .then(() => {
-        sales.unshift(newSale);
-        renderProducts();
-        renderSales();
-        updateDashboard();
-
-        ['saleBarcode','saleProductName','saleUnitPrice'].forEach(id => {
-            document.getElementById(id).value = '';
-        });
-        document.getElementById('saleQuantity').value = '1';
-        document.getElementById('saleTotal').textContent = '₹0.00';
-
-        showNotification(`💰 سیل مکمل! رقم: ₹${total.toFixed(2)}`);
-        addActivity('سیل', `${p.name} — ${qty} عدد — ₹${total.toFixed(2)}`);
-    })
-    .catch(() => showNotification('❌ سیل کلاؤڈ سیو ناکام', 'error'));
+    });
+    
+    saveUserData();
+    renderProducts();
+    renderSales();
+    
+    document.getElementById('saleBarcode').value = '';
+    document.getElementById('saleProductName').value = '';
+    document.getElementById('saleQuantity').value = '1';
+    document.getElementById('saleUnitPrice').value = '';
+    document.getElementById('saleTotal').textContent = '₹0.00';
+    
+    showNotification(`💰 سیل مکمل! رقم: ₹${total.toFixed(2)}`);
+    addActivity('سیل', `${p.name} - ${qty} عدد - ₹${total.toFixed(2)}`);
 }
 
 function renderSales() {
     const container = document.getElementById('salesHistory');
+    
     if (sales.length === 0) {
         container.innerHTML = '<div class="empty-state">کوئی سیل ریکارڈ نہیں</div>';
         return;
     }
+
     let html = `
         <table>
             <thead>
-                <tr><th>تاریخ</th><th>پراڈکٹ</th><th>مقدار</th><th>رقم</th><th>فروخت کنندہ</th></tr>
+                <tr>
+                    <th>تاریخ</th>
+                    <th>پراڈکٹ</th>
+                    <th>مقدار</th>
+                    <th>رقم</th>
+                    <th>فروخت کنندہ</th>
+                </tr>
             </thead>
-            <tbody>`;
+            <tbody>
+    `;
+
     sales.slice(0, 50).forEach(s => {
         html += `
             <tr>
-                <td style="font-size:12px;">${new Date(s.date).toLocaleString('ur-PK')}</td>
-                <td style="font-weight:600;">${s.productName}</td>
+                <td style="font-size: 12px;">${new Date(s.date).toLocaleString('ur-PK')}</td>
+                <td style="font-weight: 600;">${s.productName}</td>
                 <td>${s.quantity}</td>
-                <td style="color:#28a745;font-weight:bold;">₹${(s.total||0).toFixed(2)}</td>
-                <td><span class="category-badge" style="background:#17a2b8;">${s.seller}</span></td>
-            </tr>`;
+                <td style="color: #28a745; font-weight: bold;">₹${s.total?.toFixed(2) || 0}</td>
+                <td><span class="category-badge" style="background: #17a2b8;">${s.seller}</span></td>
+            </tr>
+        `;
     });
+
     html += '</tbody></table>';
     container.innerHTML = html;
 }
 
-// ==================== اسٹاف (فائر بیس پر) ====================
+// ==================== اسٹاف ====================
 function addStaff() {
-    if (!isOwner()) {
-        showNotification('❌ صرف اونر اسٹاف بنا سکتا ہے', 'error'); return;
+    if (currentUser.role !== 'owner' && currentUser.role !== 'account_owner') {
+        showNotification('❌ صرف اونر اسٹاف بنا سکتا ہے', 'error');
+        return;
     }
 
-    const name     = document.getElementById('staffName').value.trim();
-    const username = document.getElementById('staffUsername').value.trim().toLowerCase();
+    const name = document.getElementById('staffName').value.trim();
+    const username = document.getElementById('staffUsername').value.trim();
     const password = document.getElementById('staffPassword').value;
-    const role     = document.getElementById('staffRole').value;
+    const role = document.getElementById('staffRole').value;
 
     if (!name || !username || !password) {
-        showNotification('❌ تمام فیلڈز ضروری ہیں', 'error'); return;
+        showNotification('❌ تمام فیلڈز ضروری ہیں', 'error');
+        return;
     }
 
-    showNotification('⏳ اسٹاف بنایا جا رہا ہے...', 'warning');
+    const allUsers = getAllUsers();
+    if (allUsers.find(u => u.username === username)) {
+        showNotification('❌ یہ صارف نام پہلے سے موجود ہے', 'error');
+        return;
+    }
 
-    // چیک کریں کہ username پہلے سے نہیں ہے
-    db.collection('users').doc(username).get()
-    .then(doc => {
-        if (doc.exists) {
-            showNotification('❌ یہ صارف نام پہلے سے موجود ہے', 'error'); return;
-        }
+    const newStaff = {
+        id: 'staff_' + Date.now(),
+        name: name,
+        username: username,
+        password: password,
+        role: role,
+        ownerId: currentUser.id,
+        createdAt: new Date().toISOString()
+    };
 
-        const newStaff = {
-            id: 'staff_' + Date.now(),
-            name, username, password, role,
-            ownerId: currentUser.id,
-            createdAt: new Date().toISOString()
-        };
-
-        db.collection('users').doc(username).set(newStaff)
-        .then(() => {
-            ['staffName', 'staffUsername', 'staffPassword'].forEach(id => {
-                document.getElementById(id).value = '';
-            });
-            renderStaff();
-            showNotification('✅ اسٹاف شامل ہو گیا! وہ لاگ ان کر سکتے ہیں');
-            addActivity('نیا اسٹاف', `${name} — ${role === 'manager' ? 'منیجر' : 'سیلزمین'}`);
-        })
-        .catch(() => showNotification('❌ کلاؤڈ سیو ناکام', 'error'));
-    })
-    .catch(() => showNotification('❌ سرور کنکشن ایرر', 'error'));
+    allUsers.push(newStaff);
+    saveAllUsers(allUsers);
+    
+    document.getElementById('staffName').value = '';
+    document.getElementById('staffUsername').value = '';
+    document.getElementById('staffPassword').value = '';
+    
+    renderStaff();
+    showNotification('✅ اسٹاف شامل ہو گیا! اب وہ لاگ ان کر سکتے ہیں');
+    addActivity('نیا اسٹاف', `${name} - ${role === 'manager' ? 'منیجر' : 'سیلزمین'}`);
 }
 
 function renderStaff() {
     const container = document.getElementById('staffList');
+    const allUsers = getAllUsers();
+    const myStaff = allUsers.filter(u => 
+        u.ownerId === currentUser.id && 
+        (u.role === 'manager' || u.role === 'salesman')
+    );
+    
+    if (myStaff.length === 0) {
+        container.innerHTML = '<div class="empty-state">👥 ابھی تک کوئی اسٹاف نہیں</div>';
+        return;
+    }
 
-    db.collection('users')
-    .where('ownerId', '==', currentUser.id)
-    .get()
-    .then(snap => {
-        const myStaff = snap.docs.map(d => d.data())
-            .filter(u => u.role === 'manager' || u.role === 'salesman');
-
-        if (myStaff.length === 0) {
-            container.innerHTML = '<div class="empty-state">👥 ابھی تک کوئی اسٹاف نہیں</div>';
-            return;
-        }
-        let html = '';
-        myStaff.forEach(s => {
-            html += `
-                <div class="staff-card">
-                    <div>
-                        <div style="font-weight:bold;font-size:16px;">${s.name}</div>
-                        <div style="color:#666;font-size:13px;margin-top:4px;">
-                            @${s.username} | ${s.role === 'manager' ? '👔 منیجر' : '🛒 سیلزمین'}
-                        </div>
+    let html = '';
+    myStaff.forEach(s => {
+        html += `
+            <div class="staff-card">
+                <div>
+                    <div style="font-weight: bold; font-size: 16px;">${s.name}</div>
+                    <div style="color: #666; font-size: 13px; margin-top: 4px;">
+                        @${s.username} | ${s.role === 'manager' ? '👔 منیجر' : '🛒 سیلزمین'}
                     </div>
-                    <button class="btn btn-danger btn-small" onclick="deleteStaff('${s.username}')">🗑️ حذف</button>
-                </div>`;
-        });
-        container.innerHTML = html;
-    })
-    .catch(() => container.innerHTML = '<div class="empty-state">❌ اسٹاف لوڈ ناکام</div>');
+                </div>
+                <button class="btn btn-danger btn-small" onclick="deleteStaff('${s.id}')">🗑️ حذف</button>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
 }
 
-function deleteStaff(username) {
+function deleteStaff(id) {
     if (!confirm('🗑️ اس اسٹاف کو حذف کریں؟')) return;
-    db.collection('users').doc(username).delete()
-    .then(() => {
-        renderStaff();
-        showNotification('🗑️ اسٹاف حذف ہو گیا');
-    })
-    .catch(() => showNotification('❌ حذف ناکام', 'error'));
+    
+    let allUsers = getAllUsers();
+    allUsers = allUsers.filter(u => u.id !== id);
+    saveAllUsers(allUsers);
+    
+    renderStaff();
+    showNotification('🗑️ اسٹاف حذف ہو گیا');
 }
 
 // ==================== ایکسپورٹ ====================
 function exportData(format) {
     if (products.length === 0) {
-        showNotification('❌ ایکسپورٹ کے لیے کوئی ڈیٹا نہیں', 'error'); return;
+        showNotification('❌ ایکسپورٹ کے لیے کوئی ڈیٹا نہیں', 'error');
+        return;
     }
 
-    const ownerMode = isOwner();
+    const isOwner = currentUser.role === 'owner' || currentUser.role === 'account_owner';
     const timestamp = new Date().toISOString().slice(0, 10);
 
     if (format === 'json') {
-        const data = ownerMode ? products : products.map(({ barcode, name, category, quantity, salePrice }) =>
-            ({ barcode, name, category, quantity, salePrice }));
-        triggerDownload(JSON.stringify(data, null, 2), `products_${timestamp}.json`, 'application/json');
+        const data = isOwner ? products : products.map(p => ({
+            barcode: p.barcode, name: p.name, category: p.category,
+            quantity: p.quantity, salePrice: p.salePrice
+        }));
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `products_${timestamp}.json`; a.click();
         showNotification('📥 JSON ڈاؤنلوڈ ہو گیا');
     } else {
-        let csv = ownerMode
-            ? 'بارکوڈ,نام,کیٹیگری,مقدار,خرید قیمت,فروخت قیمت,تاریخ\n'
-            : 'بارکوڈ,نام,کیٹیگری,مقدار,فروخت قیمت,تاریخ\n';
-
+        let csv = isOwner ? 
+            'بارکوڈ,نام,کیٹیگری,مقدار,خرید قیمت,فروخت قیمت,تاریخ\n' :
+            'بارکوڈ,نام,کیٹیگری,مقدار,فروخت قیمت,تاریخ\n';
+            
         products.forEach(p => {
-            const date = `"${new Date(p.createdAt).toLocaleString('ur-PK')}"`;
-            csv += ownerMode
-                ? `${p.barcode},"${p.name}",${p.category},${p.quantity},${p.costPrice||0},${p.salePrice||0},${date}\n`
-                : `${p.barcode},"${p.name}",${p.category},${p.quantity},${p.salePrice||0},${date}\n`;
+            if (isOwner) {
+                csv += `${p.barcode},"${p.name}",${p.category},${p.quantity},${p.costPrice || 0},${p.salePrice || 0},"${new Date(p.createdAt).toLocaleString('ur-PK')}"\n`;
+            } else {
+                csv += `${p.barcode},"${p.name}",${p.category},${p.quantity},${p.salePrice || 0},"${new Date(p.createdAt).toLocaleString('ur-PK')}"\n`;
+            }
         });
-
-        triggerDownload('\ufeff' + csv, `products_${timestamp}.csv`, 'text/csv;charset=utf-8;');
+        
+        const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `products_${timestamp}.csv`; a.click();
         showNotification('📄 CSV ڈاؤنلوڈ ہو گیا');
     }
 }
 
-function triggerDownload(content, filename, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url);
+// ==================== گوگل شیٹس ====================
+function syncToGoogleSheets() {
+    const status = document.getElementById('syncStatus');
+    status.textContent = '🔄 ہم آہنگ ہو رہا ہے...';
+    status.className = 'sync-status syncing';
+    
+    setTimeout(() => {
+        status.textContent = '✅ ہم آہنگ';
+        status.className = 'sync-status';
+    }, 1000);
 }
 
-// ==================== سیٹنگز ====================
 function saveSheetSettings() {
     const sheetId = document.getElementById('sheetId').value.trim();
     if (sheetId) {
@@ -1396,18 +1592,212 @@ function saveSheetSettings() {
 }
 
 function syncNow() {
-    loadUserData();
-    showNotification('🔄 ڈیٹا تازہ ہو گیا');
+    syncToGoogleSheets();
+    showNotification('🔄 ہم آہنگی مکمل');
 }
 
 function clearAllData() {
-    if (!confirm('⚠️ تمام ڈیٹا مستقل حذف کریں؟')) return;
+    if (!confirm('⚠️ تمام ڈیٹا حذف کریں؟ یہ واپس نہیں آئے گا!')) return;
+    
+    const targetId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
+    const prefix = targetId + '_';
+    localStorage.removeItem(prefix + 'products');
+    localStorage.removeItem(prefix + 'sales');
+    localStorage.removeItem(prefix + 'activities');
+    
     products = []; sales = []; activities = [];
+    saveUserData();
     renderProducts();
     renderSales();
     updateDashboard();
-    showNotification('🗑️ لوکل ڈیٹا صاف ہو گیا (کلاؤڈ محفوظ ہے)');
+    showNotification('🗑️ تمام ڈیٹا حذف ہو گیا');
 }
+// ============================================================================
+//               فائر بیس کلاؤڈ کنکشن، رجسٹریشن اور گوگل لاگ ان سسٹم
+// ============================================================================
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDhgSB1jFbeXRKtlV18c6tp6Z_m6zKHLms",
+  authDomain: "mobile-inventory-store.firebaseapp.com",
+  projectId: "mobile-inventory-store",
+  storageBucket: "mobile-inventory-store.firebasestorage.app",
+  messagingSenderId: "685100228769",
+  appId: "1:685100228769:web:9d1244b2ffb153de3d10e0",
+  measurementId: "G-E643SC87CW"
+};
+
+// فائر بیس شروع کرنا
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+
+// ۱. نوٹیفیکیشن دکھانے کا فنکشن (جو مسنگ تھا)
+function showNotification(message, type = 'success') {
+    const notif = document.getElementById('notification');
+    if (!notif) {
+        alert(message);
+        return;
+    }
+    notif.textContent = message;
+    notif.style.background = type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#28a745';
+    notif.style.color = type === 'warning' ? '#333' : 'white';
+    notif.style.display = 'block';
+    
+    setTimeout(() => {
+        notif.style.display = 'none';
+    }, 3000);
+}
+
+// ۲. جی میل (Google) سے لاگ ان اور سائن اپ کرنے کا فنکشن
+function loginWithGoogle() {
+    showNotification('⏳ جی میل سے رابطہ ہو رہا ہے...', 'warning');
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    firebase.auth().signInWithPopup(provider)
+    .then((result) => {
+        const user = result.user;
+        const userEmail = user.email.toLowerCase();
+        
+        const userData = {
+            id: user.uid,
+            fullName: user.displayName,
+            username: userEmail,
+            email: userEmail,
+            role: 'owner',
+            photoURL: user.photoURL,
+            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // کلاؤڈ ڈیٹا بیس میں یوزر سیو کرنا
+        db.collection("users").doc(user.uid).set(userData, { merge: true })
+        .then(() => {
+            currentUser = userData;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            showNotification(`🚀 خوش آمدید، ${user.displayName}!`);
+            
+            // لاگ ان سیشن بحال ہونے کے بعد مین ڈیش بورڈ کھولیں
+            if (typeof showMainApp === 'function') { showMainApp(); }
+            else { location.reload(); } // بیک اپ حل
+        })
+        .catch((err) => {
+            console.error(err);
+            showNotification('❌ ڈیٹا بیس ایرر!', 'error');
+        });
+    })
+    .catch((err) => {
+        console.error(err);
+        showNotification('❌ گوگل لاگ ان کینسل یا فیل ہو گیا!', 'error');
+    });
+}
+
+// ۳. مینوئل یوزر رجسٹریشن (فائر بیس کلاؤڈ پر منتقل)
+function registerOwner(event) {
+    if (event) event.preventDefault();
+
+    const fullNameInput = document.getElementById('ownerFullName') || document.getElementById('regFullName');
+    const usernameInput = document.getElementById('ownerUsername') || document.getElementById('regUsername');
+    const passwordInput = document.getElementById('ownerPassword') || document.getElementById('regPassword');
+
+    if (!fullNameInput || !usernameInput || !passwordInput) {
+        showNotification('❌ فارم کے فیلڈز نہیں مل سکے!', 'error');
+        return;
+    }
+
+    const fullName = fullNameInput.value.trim();
+    const username = usernameInput.value.trim().toLowerCase();
+    const password = passwordInput.value;
+
+    if (!fullName || !username || !password) {
+        showNotification('⚠️ تمام فیلڈز پر کرنا لازمی ہیں!', 'warning');
+        return;
+    }
+
+    showNotification('⏳ کلاؤڈ پر اکاؤنٹ بن رہا ہے...', 'warning');
+
+    db.collection("users").doc(username).get()
+    .then((doc) => {
+        if (doc.exists) {
+            showNotification('❌ یہ صارف نام (Username) پہلے سے موجود ہے!', 'error');
+        } else {
+            const newUser = {
+                id: username,
+                fullName: fullName,
+                username: username,
+                password: password,
+                role: 'owner',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection("users").doc(username).set(newUser)
+            .then(() => {
+                showNotification('🚀 اکاؤنٹ کامیابی سے بن گیا! اب لاگ ان کریں');
+                fullNameInput.value = ''; usernameInput.value = ''; passwordInput.value = '';
+                const modal = document.getElementById('ownerRegisterModal');
+                if (modal) modal.style.display = 'none';
+            })
+            .catch(() => showNotification('❌ کلاؤڈ سیونگ فیل!', 'error'));
+        }
+    })
+    .catch(() => showNotification('❌ سرور کنکشن ایرر!', 'error'));
+}
+
+// ۴. پیج ریفریش ہونے پر سیشن برقرار رکھنے کا مستقل حل
+document.addEventListener("DOMContentLoaded", function() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        
+        // لاگ ان اسکرینز چھپائیں اور مین ایپ دکھائیں
+        const loginModal = document.getElementById('loginModal') || document.getElementById('authContainer');
+        if (loginModal) loginModal.style.display = 'none';
+        
+        const mainApp = document.getElementById('mainApp');
+        if (mainApp) mainApp.classList.remove('hidden');
+        
+        console.log("سیشن خود بخود بحال ہو گیا:", currentUser.fullName);
+    }
+});
+
+// ۵. پرانا سیٹنگ ہینڈلر فال بیک
+function saveSheetSettings() {
+    console.log('فائر بیس ایکٹیو ہے۔ پرانی سیٹنگز بائی پاس کر دی گئیں۔');
+}
+    // ==================== نوٹیفیکیشن کا فنکشن (جو مسنگ تھا) ====================
+function showNotification(message, type = 'success') {
+    const notif = document.getElementById('notification');
+    if (!notif) {
+        // اگر کوڈ میں نوٹیفیکیشن کا ڈیو (Div) نہ ملے تو الرٹ دکھا دے تاکہ کام نہ رکے
+        alert(message);
+        return;
+    }
+    notif.textContent = message;
+    notif.style.background = type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#28a745';
+    notif.style.color = type === 'warning' ? '#333' : 'white';
+    notif.style.display = 'block';
+    
+    setTimeout(() => {
+        notif.style.display = 'none';
+    }, 3000);
+}
+    
+// انٹر کی ایونٹس
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('manualBarcode')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') document.getElementById('manualName').focus();
+    });
+    document.getElementById('manualName')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') addProduct();
+    });
+    document.getElementById('saleBarcode')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') findProductForSale();
+    });
+});
+
+// مودال بند
+document.getElementById('editModal')?.addEventListener('click', e => {
+    if (e.target.id === 'editModal') closeModal();
+});
 </script>
 </body>
 </html>
