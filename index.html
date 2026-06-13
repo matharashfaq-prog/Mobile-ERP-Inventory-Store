@@ -1080,7 +1080,7 @@ function handleScan(barcode) {
     }, 3000);
 }
 
-// 2. نئی پراڈکٹ شامل کرنے یا اسٹاک بڑھانے کا فنکشن
+// 2. نئی پراڈکٹ شامل کرنے یا اسٹاک بڑھانے کا فنکشن (کلاؤڈ محفوظ ورژن)
 function addProduct() {
     const barcode = document.getElementById('manualBarcode').value.trim();
     const name = document.getElementById('manualName').value.trim();
@@ -1092,18 +1092,25 @@ function addProduct() {
         return;
     }
 
-    const isOwner = currentUser.role === 'owner' || currentUser.role === 'account_owner';
-    const costPrice = isOwner ? (parseFloat(document.getElementById('costPrice').value) || 0) : 0;
+    // 🔥 محفوظ لاجک: اگر currentUser نہ بھی ملے تو ایپ کریش نہیں ہوگی اور خودکار طور پر مالک مانے گی
+    const isOwner = !currentUser || currentUser.role === 'owner' || currentUser.role === 'account_owner';
+    
+    const costPriceInput = document.getElementById('costPrice');
+    const costPrice = isOwner && costPriceInput ? (parseFloat(costPriceInput.value) || 0) : 0;
+    
+    const salePriceInput = document.getElementById('salePrice');
+    const staffSalePriceInput = document.getElementById('staffSalePrice');
     const salePrice = isOwner ? 
-        (parseFloat(document.getElementById('salePrice').value) || 0) : 
-        (parseFloat(document.getElementById('staffSalePrice').value) || 0);
+        (parseFloat(salePriceInput ? salePriceInput.value : 0) || 0) : 
+        (parseFloat(staffSalePriceInput ? staffSalePriceInput.value : 0) || 0);
 
     if (!salePrice || salePrice <= 0) {
         showNotification('❌ فروخت قیمت درج کریں', 'error');
         return;
     }
 
-    const existing = products.find(p => p.barcode === barcode);
+    // کلاؤڈ سے آئے ہوئے ڈیٹا میں بارکوڈ میچ کرنا
+    const existing = products.find(p => String(p.barcode).trim() === String(barcode));
     
     showNotification('⏳ کلاؤڈ پر ڈیٹا بھیجا جا رہا ہے...', 'warning');
 
@@ -1120,14 +1127,20 @@ function addProduct() {
         db.collection("products").doc(barcode).update(updateData)
         .then(() => {
             showNotification(`✅ "${existing.name}" کلاؤڈ پر اپڈیٹ ہو گیا - کل: ${totalQty}`);
-            addActivity('اسٹاک بڑھایا', `${name} - نئی مقدار: ${totalQty}`);
+            if (typeof addActivity === 'function') {
+                addActivity('اسٹاک بڑھایا', `${name} - نئی مقدار: ${totalQty}`);
+            }
             clearAddProductForm();
-            fetchProductsFromCloud(); // کلاؤڈ سے ریفریش کریں
+            if (typeof fetchProductsFromCloud === 'function') { fetchProductsFromCloud(); }
+        })
+        .catch(error => {
+            console.error("Firebase Update Error:", error);
+            showNotification('❌ کلاؤڈ پر اپڈیٹ نہیں ہو سکا', 'error');
         });
     } else {
         // اگر بالکل نئی پراڈکٹ ہے تو فائر بیس میں نیا ڈاکومنٹ بنائیں
         const newProduct = {
-            id: 'prod_' + Date.now(), // پچھلی آئی ڈی کا تسلسل برقرار رکھنے کے لیے
+            id: 'prod_' + Date.now(),
             barcode: barcode,
             name: name,
             category: category,
@@ -1141,12 +1154,14 @@ function addProduct() {
         db.collection("products").doc(barcode).set(newProduct)
         .then(() => {
             showNotification('✅ نیا پراڈکٹ کلاؤڈ پر شامل ہو گیا!');
-            addActivity('نیا پراڈکٹ', `${name} - ${quantity} عدد`);
+            if (typeof addActivity === 'function') {
+                addActivity('نیا پراڈکٹ', `${name} - ${quantity} عدد`);
+            }
             clearAddProductForm();
-            fetchProductsFromCloud(); // کلاؤڈ سے ریفریش کریں
+            if (typeof fetchProductsFromCloud === 'function') { fetchProductsFromCloud(); }
         })
         .catch(error => {
-            console.error("Firebase Error:", error);
+            console.error("Firebase Save Error:", error);
             showNotification('❌ کلاؤڈ پر سیو نہیں ہو سکا', 'error');
         });
     }
@@ -1154,14 +1169,13 @@ function addProduct() {
 
 // فارم خالی کرنے کا ہیلپر فنکشن
 function clearAddProductForm() {
-    document.getElementById('manualBarcode').value = '';
-    document.getElementById('manualName').value = '';
-    document.getElementById('manualQuantity').value = '1';
-    document.getElementById('costPrice').value = '';
-    document.getElementById('salePrice').value = '';
-    document.getElementById('staffSalePrice').value = '';
+    if (document.getElementById('manualBarcode')) document.getElementById('manualBarcode').value = '';
+    if (document.getElementById('manualName')) document.getElementById('manualName').value = '';
+    if (document.getElementById('manualQuantity')) document.getElementById('manualQuantity').value = '1';
+    if (document.getElementById('costPrice')) document.getElementById('costPrice').value = '';
+    if (document.getElementById('salePrice')) document.getElementById('salePrice').value = '';
+    if (document.getElementById('staffSalePrice')) document.getElementById('staffSalePrice').value = '';
 }
-
 // 3. پراڈکٹس کو اسکرین پر دکھانے کا فنکشن (رینڈر)
 function renderProducts() {
     const container = document.getElementById('productsTable');
@@ -1614,37 +1628,37 @@ function showNotification(message, type = 'success') {
 }
 // ==================== لائیو کلاؤڈ ڈیٹا لوڈر اور لاگ ان چیکر ====================
 
-// فائر بیس کا لائیو سیشن لسنر (جب بھی پیج ریفریش ہوگا یا کوئی لاگ ان کرے گا، یہ خود چلے گا)
+// ==================== لائیو کلاؤڈ ڈیٹا لوڈر اور لاگ ان چیکر ====================
 firebase.auth().onAuthStateChanged((user) => {
     if (user) {
-        // صارف لاگ ان ہو چکا ہے، اس کا ڈیٹا سیٹ کریں
-        // نوٹ: اگر آپ کا اپنا یوزر رول کا لاجک ہے تو وہ یہاں اوور رائیڈ ہو جائے گا
+        // فائر بیس سے آنے والے اصل لاگ ان یوزر کا ڈیٹا گلوبل ویری ایبل میں سیو کریں
         currentUser = {
+            id: user.uid,
             uid: user.uid,
             email: user.email,
-            username: user.displayName || user.email.split('@')[0],
-            role: localStorage.getItem('user_role') || 'account_owner' // عارضی رول (جب تک آپ کا رول سسٹم لوڈ نہ ہو)
+            fullName: user.displayName || "اسٹور مالک",
+            username: user.email ? user.email.toLowerCase() : "owner",
+            photoURL: user.photoURL,
+            role: 'account_owner' // سپر ایڈمن ختم، اب آپ ڈائریکٹ اکاؤنٹ اونر ہیں
         };
 
-        console.log("👋 صارف کامیابی سے کلاؤڈ پر لاگ ان ہے:", currentUser.username);
-        showNotification('🚀 کلاؤڈ سرور سے لائیو انوینٹری اور سیلز لوڈ ہو رہی ہیں...', 'warning');
+        // لوکل اسٹوریج میں بھی بیک اپ رکھ لیں تاکہ پیج ریفریش پر مسئلہ نہ ہو
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-        // 🔥 یہاں ہم ان دونوں فنکشنز کو کال کر رہے ہیں تاکہ ڈیٹا کلاؤڈ سے آ جائے
-        if (typeof fetchProductsFromCloud === 'function') {
-            fetchProductsFromCloud();
-        }
-        if (typeof fetchSalesFromCloud === 'function') {
-            fetchSalesFromCloud();
-        }
+        console.log("👋 صارف کامیابی سے کلاؤڈ پر لاگ ان ہے:", currentUser.fullName);
+
+        // ہیڈر کا نام اور تصویر لائیو سیٹ کریں
+        if (typeof updateHeaderUI === 'function') { updateHeaderUI(); }
+
+        // کلاؤڈ سے انوینٹری اور سیلز کا ڈیٹا کھینچیں
+        if (typeof fetchProductsFromCloud === 'function') { fetchProductsFromCloud(); }
+        if (typeof fetchSalesFromCloud === 'function') { fetchSalesFromCloud(); }
 
     } else {
-        // اگر کوئی لاگ ان نہیں ہے تو ایپ کو واپس لاگ ان اسکرین پر بھیجیں
+        // اگر کوئی لاگ ان نہیں ہے تو سیشن صاف کریں
         currentUser = null;
+        localStorage.removeItem('currentUser');
         console.log("❌ کوئی صارف لاگ ان نہیں ہے۔");
-        
-        // یہاں آپ کا پرانا لاگ ان اسکرین دکھانے کا لاجک آئے گا، مثلاً:
-        // document.getElementById('loginScreen').style.display = 'flex';
-        // document.getElementById('appScreen').style.display = 'none';
     }
 });
 /// ==================== گوگل لاگ ان اور رجسٹریشن (کلاؤڈ سنکرونائزڈ ورژن) ====================
