@@ -735,7 +735,76 @@ function login() {
         showNotification('❌ سرور کنکشن فیل!', 'error');
     });
 }
+// ==================== جی میل (Google) لاگ ان اور سائن اپ کا کلاؤڈ فنکشن ====================
+function loginWithGoogle() {
+    // یوزر کو بتانا کہ کام شروع ہو گیا ہے
+    if (typeof showNotification === 'function') {
+        showNotification('⏳ جی میل سے رابطہ ہو رہا ہے...', 'warning');
+    } else {
+        alert('⏳ جی میل سے رابطہ ہو رہا ہے...');
+    }
+    
+    // فائر بیس کا گوگل اتھ پرووائیڈر بنانا
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    // گوگل لاگ ان کا پاپ اپ اوپن کرنا
+    firebase.auth().signInWithPopup(provider)
+    .then((result) => {
+        const user = result.user;
+        const userEmail = user.email.toLowerCase();
+        
+        // فائر بیس ڈیٹا بیس کے لیے یوزر کی پروفائل تیار کرنا
+        const userData = {
+            id: 'owner_' + user.uid,
+            name: user.displayName,
+            username: userEmail,
+            role: 'account_owner',
+            email: userEmail,
+            createdAt: new Date().toISOString()
+        };
 
+        // فائر بیس کلاؤڈ (Firestore) پر ڈیٹا محفوظ کرنا
+        db.collection("users").doc(user.uid).set(userData, { merge: true })
+        .then(() => {
+            currentUser = userData;
+            
+            // سیشن کو لوکل اسٹوریج میں رکھنا تاکہ ریفریش پر لاگ آؤٹ نہ ہو
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            if (typeof showNotification === 'function') {
+                showNotification(`🚀 خوش آمدید، ${user.displayName}!`);
+            }
+            
+            // ڈیش بورڈ لوڈ کرنا اور اسکرین بدلنا
+            if (typeof loadUserData === 'function') loadUserData();
+            if (typeof showMainApp === 'function') showMainApp();
+        })
+        .catch((err) => {
+            console.error("Database Save Error:", err);
+            if (typeof showNotification === 'function') showNotification('❌ کلاؤڈ ڈیٹا بیس ایرر!', 'error');
+        });
+    })
+    .catch((err) => {
+        console.error("Google Popup Error:", err);
+        if (typeof showNotification === 'function') {
+            showNotification('❌ گوگل لاگ ان کینسل یا بلاک ہو گیا ہے!', 'error');
+        }
+    });
+}
+
+// ==================== ریفریش کرنے پر لاگ آؤٹ ہونے کا مستقل حل ====================
+document.addEventListener("DOMContentLoaded", function() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        
+        // اگر ڈیٹا لوڈ کرنے اور ایپ دکھانے کے فنکشنز موجود ہیں تو رن کریں
+        if (typeof loadUserData === 'function') loadUserData();
+        if (typeof showMainApp === 'function') showMainApp();
+        
+        console.log("سیشن خود بخود بحال ہو گیا:", currentUser.name);
+    }
+});
 // جی میل (Google) سے لاگ ان / سائن اپ کا پروفیشنل فنکشن
 function loginWithGoogle() {
     showNotification('⏳ جی میل سے رابطہ ہو رہا ہے...', 'warning');
