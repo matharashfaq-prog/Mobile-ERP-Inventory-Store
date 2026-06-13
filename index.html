@@ -857,50 +857,124 @@ function logout() {
     showNotification('👋 لاگ آؤٹ ہو گیا');
 }
 
-// ==================== ڈیٹا مینجمنٹ ====================
+// ==================== یونیورسل کلاؤڈ ڈیٹا مینجمنٹ ====================
+
+// کلاؤڈ سے لائیو ڈیٹا لوڈ کرنے کا فنکشن (Universal Loading)
 function loadUserData() {
     if (!currentUser) return;
     
-    // کلاؤڈ پر منتقلی کے دوران لوکل ڈیٹا کریش ہونے سے بچانے کا پریفکس
-    let prefix = '';
     if (currentUser.id === 'superadmin') {
         products = []; sales = []; activities = [];
+        if (typeof updateDashboard === 'function') updateDashboard();
         return;
-    } else if (currentUser.role === 'manager' || currentUser.role === 'salesman') {
-        prefix = currentUser.ownerId + '_';
-    } else {
-        prefix = currentUser.id + '_';
     }
-    
-    products = JSON.parse(localStorage.getItem(prefix + 'products') || '[]');
-    sales = JSON.parse(localStorage.getItem(prefix + 'sales') || '[]');
-    activities = JSON.parse(localStorage.getItem(prefix + 'activities') || '[]');
+
+    // پتا لگائیں کہ ڈیٹا کس اونر کا لوڈ کرنا ہے (اسٹاف کے لیے اس کا ownerId استعمال ہوگا)
+    const targetOwnerId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
+
+    if (typeof showNotification === 'function') {
+        showNotification('⏳ کلاؤڈ سے یونیورسل ڈیٹا لوڈ ہو رہا ہے...', 'warning');
+    }
+
+    // ۱. فائر بیس سے پروڈکٹس (Products) لوڈ کرنا
+    db.collection("products").where("ownerId", "==", targetOwnerId).get()
+    .then((querySnapshot) => {
+        products = [];
+        querySnapshot.forEach((doc) => {
+            products.push(doc.data());
+        });
+        
+        // اگر ایپ میں پروڈکٹس کے ٹیبل یا ڈیش بورڈ کے فنکشنز ہیں تو انہیں ریفریش کریں
+        if (typeof updateProductTable === 'function') updateProductTable();
+        if (typeof updateDashboard === 'function') updateDashboard();
+    })
+    .catch((error) => {
+        console.error("Error loading products from cloud: ", error);
+    });
+
+    // ۲. فائر بیس سے سیلز (Sales) کا ڈیٹا لوڈ کرنا
+    db.collection("sales").where("ownerId", "==", targetOwnerId).get()
+    .then((querySnapshot) => {
+        sales = [];
+        querySnapshot.forEach((doc) => {
+            sales.push(doc.data());
+        });
+        if (typeof updateSalesTable === 'function') updateSalesTable();
+        if (typeof updateDashboard === 'function') updateDashboard();
+    })
+    .catch((error) => {
+        console.error("Error loading sales from cloud: ", error);
+    });
+
+    // ۳. فائر بیس سے سرگرمیاں (Activities) لوڈ کرنا
+    db.collection("activities").where("ownerId", "==", targetOwnerId).orderBy("id", "desc").limit(50).get()
+    .then((querySnapshot) => {
+        activities = [];
+        querySnapshot.forEach((doc) => {
+            activities.push(doc.data());
+        });
+        if (typeof updateActivityLog === 'function') updateActivityLog();
+    })
+    .catch((error) => {
+        // اگر فائر بیس پر انڈیکس نہ بنا ہو تو orderBy ایرر دے سکتا ہے، اس صورت میں سادہ لوڈنگ:
+        db.collection("activities").where("ownerId", "==", targetOwnerId).limit(50).get()
+        .then((snapshot) => {
+            activities = [];
+            snapshot.forEach((doc) => activities.push(doc.data()));
+            activities.sort((a, b) => b.id - a.id);
+            if (typeof updateActivityLog === 'function') updateActivityLog();
+        });
+    });
 }
+
+// کلاؤڈ پر پروڈکٹس اور سیلز اپ ڈیٹ رکھنے کا یونیورسل فنکشن
 function saveUserData() {
     if (!currentUser || currentUser.id === 'superadmin') return; 
-    // ڈیٹا ہمیشہ اکاؤنٹ اونر کے کی-اسپیس (Key-space) میں سیو ہوگا
-    const targetId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
-    const prefix = targetId + '_';
+    
+    const targetOwnerId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
+    
+    // ہم بیک اپ کے لیے لوکل اسٹوریج میں بھی سیو رکھیں گے تاکہ نیٹ سلو ہو تو ایپ کریش نہ ہو
+    const prefix = targetOwnerId + '_';
     localStorage.setItem(prefix + 'products', JSON.stringify(products));
     localStorage.setItem(prefix + 'sales', JSON.stringify(sales));
     localStorage.setItem(prefix + 'activities', JSON.stringify(activities));
-    syncToGoogleSheets();
+
+    // گوگل شیٹس سنک کا پرانا فنکشن چلتا رہے گا
+    if (typeof syncToGoogleSheets === 'function') {
+        syncToGoogleSheets();
+    }
 }
 
+// یونیورسل ایکٹیویٹی لاگ (جو کلاؤڈ پر سیو ہوگا تاکہ اونر دیکھ سکے اسٹاف نے کیا کیا)
 function addActivity(action, details) {
-    activities.unshift({
+    if (!currentUser) return;
+
+    const targetOwnerId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
+    
+    const newActivity = {
         id: Date.now(),
+        ownerId: targetOwnerId, // اونر کنکشن
         action: action,
         details: details,
         user: currentUser.name,
         role: currentUser.role,
         time: new Date().toLocaleString('ur-PK')
-    });
-    if (activities.length > 50) activities.pop();
-    saveUserData();
-    updateDashboard();
-}
+    };
 
+    // ۱. لوکل ایرے میں شامل کریں
+    activities.unshift(newActivity);
+    if (activities.length > 50) activities.pop();
+
+    // ۲. فائر بیس کلاؤڈ پر لائیو اپ لوڈ کریں
+    db.collection("activities").doc(newActivity.id.toString()).set(newActivity)
+    .then(() => {
+        saveUserData();
+        if (typeof updateDashboard === 'function') updateDashboard();
+    })
+    .catch((err) => {
+        console.error("Activity cloud save error:", err);
+    });
+}
 // ==================== مین ایپ ====================
 function showMainApp() {
     document.getElementById('loginScreen').classList.add('hidden');
