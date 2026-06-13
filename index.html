@@ -829,21 +829,14 @@ function loginWithGoogle() {
         const user = result.user;
         const userEmail = user.email.toLowerCase();
         
-       // گوگل کے نام سے اسپیس ختم کر کے صاف ستھرا یوزر نیم بنانا
-const cleanUsername = user.displayName ? user.displayName.toLowerCase().replace(/\s+/g, '') : userEmail.split('@')[0];
-
-// گوگل کے نام کو ہی دکان/اسٹور کا نام بنانا
-const myStoreName = user.displayName ? user.displayName + " Store" : "میرا اسٹور";
-
-const userData = {
-    id: 'owner_' + user.uid,
-    name: user.displayName,
-    username: cleanUsername,      // اب undefined کا نام و نشان ختم!
-    storeName: myStoreName,       // نیا اسٹور نیم جو پورے سسٹم میں استعمال ہوگا
-    role: 'owner',                // رول 'owner' کر دیا تاکہ سیلر/مینیجر کا غائب آپشن واپس آ جائے
-    email: userEmail,
-    createdAt: new Date().toISOString()
-};
+        const userData = {
+            id: 'owner_' + user.uid,
+            name: user.displayName,
+            username: userEmail,
+            role: 'account_owner',
+            email: userEmail,
+            createdAt: new Date().toISOString()
+        };
 
         // کلاؤڈ پر یوزر کا ڈیٹا مرج کرنا (اگر نیا ہے تو بن جائے گا، پرانا ہے تو اپ ڈیٹ ہو جائے گا)
         db.collection("users").doc(user.uid).set(userData, { merge: true })
@@ -883,10 +876,10 @@ function logout() {
 function loadUserData() {
     if (!currentUser) return;
     
-    // ۱۔ اسکرین پر دکان کا لائیو نام دکھانا (اگر تبدیل ہوا ہو تو وہ نظر آئے گا)
-    const storeDisplayElement = document.getElementById('storeNameDisplay');
-    if (storeDisplayElement) {
-        storeDisplayElement.innerText = currentUser.storeName || "میرا اسٹور";
+    if (currentUser.id === 'superadmin') {
+        products = []; sales = []; activities = [];
+        if (typeof updateDashboard === 'function') updateDashboard();
+        return;
     }
 
     // پتا لگائیں کہ ڈیٹا کس اونر کا لوڈ کرنا ہے (اسٹاف کے لیے اس کا ownerId استعمال ہوگا)
@@ -896,7 +889,7 @@ function loadUserData() {
         showNotification('⏳ کلاؤڈ سے یونیورسل ڈیٹا لوڈ ہو رہا ہے...', 'warning');
     }
 
-    // ۲. فائر بیس سے پروڈکٹس (Products) لوڈ کرنا
+    // ۱. فائر بیس سے پروڈکٹس (Products) لوڈ کرنا
     db.collection("products").where("ownerId", "==", targetOwnerId).get()
     .then((querySnapshot) => {
         products = [];
@@ -912,7 +905,7 @@ function loadUserData() {
         console.error("Error loading products from cloud: ", error);
     });
 
-    // ۳. فائر بیس سے سیلز (Sales) کا ڈیٹا لوڈ کرنا
+    // ۲. فائر بیس سے سیلز (Sales) کا ڈیٹا لوڈ کرنا
     db.collection("sales").where("ownerId", "==", targetOwnerId).get()
     .then((querySnapshot) => {
         sales = [];
@@ -926,7 +919,7 @@ function loadUserData() {
         console.error("Error loading sales from cloud: ", error);
     });
 
-    // ۴. فائر بیس سے سرگرمیاں (Activities) لوڈ کرنا
+    // ۳. فائر بیس سے سرگرمیاں (Activities) لوڈ کرنا
     db.collection("activities").where("ownerId", "==", targetOwnerId).orderBy("id", "desc").limit(50).get()
     .then((querySnapshot) => {
         activities = [];
@@ -949,7 +942,7 @@ function loadUserData() {
 
 // کلاؤڈ پر پروڈکٹس اور سیلز اپ ڈیٹ رکھنے کا یونیورسل فنکشن
 function saveUserData() {
-    if (!currentUser) return; 
+    if (!currentUser || currentUser.id === 'superadmin') return; 
     
     const targetOwnerId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
     
@@ -964,6 +957,7 @@ function saveUserData() {
         syncToGoogleSheets();
     }
 }
+
 // یونیورسل ایکٹیویٹی لاگ (جو کلاؤڈ پر سیو ہوگا تاکہ اونر دیکھ سکے اسٹاف نے کیا کیا)
 function addActivity(action, details) {
     if (!currentUser) return;
