@@ -161,55 +161,6 @@
         </div>
 </div>
 
-<div class="admin-trigger" id="adminTrigger" onclick="handleAdminTrigger()"></div>
-
-<div class="modal-overlay" id="adminLoginModal" style="z-index: 5000;">
-    <div class="modal-box">
-        <div class="modal-header">
-            <h3>👑 سپر ایڈمن لاگ ان</h3>
-            <button class="close-x" onclick="closeAdminModal()">&times;</button>
-        </div>
-        <div class="info-text" style="background: #ffebee; color: #c62828;">
-            ⚠️ یہ صرف سسٹم ایڈمنسٹریٹر کے لیے ہے
-        </div>
-        <div class="input-group">
-            <label>صارف نام</label>
-            <input type="text" id="adminUsername" value="superadmin" readonly style="background: #f5f5f5;">
-        </div>
-        <div class="input-group">
-            <label>پاس ورڈ</label>
-            <input type="password" id="adminPassword" placeholder="سپر ایڈمن پاس ورڈ درج کریں">
-        </div>
-        <button class="btn btn-primary" onclick="adminLogin()" style="width: 100%; margin-top: 10px;">
-            🔓 لاگ ان
-        </button>
-    </div>
-</div>
-
-<div class="admin-trigger" id="adminTrigger" onclick="handleAdminTrigger()"></div>
-
-<div class="modal-overlay" id="adminLoginModal" style="z-index: 5000;">
-    <div class="modal-box">
-        <div class="modal-header">
-            <h3>👑 سپر ایڈمن لاگ ان</h3>
-            <button class="close-x" onclick="closeAdminModal()">&times;</button>
-        </div>
-        <div class="info-text" style="background: #ffebee; color: #c62828;">
-            ⚠️ یہ صرف سسٹم ایڈمنسٹریٹر کے لیے ہے
-        </div>
-        <div class="input-group">
-            <label>صارف نام</label>
-            <input type="text" id="adminUsername" value="superadmin" readonly style="background: #f5f5f5;">
-        </div>
-        <div class="input-group">
-            <label>پاس ورڈ</label>
-            <input type="password" id="adminPassword" placeholder="سپر ایڈمن پاس ورڈ درج کریں">
-        </div>
-        <button class="btn btn-primary" onclick="adminLogin()" style="width: 100%; margin-top: 10px;">
-            🔓 لاگ ان
-        </button>
-    </div>
-</div>
 <div id="mainApp" class="container hidden">
 
     <div class="app-header">
@@ -225,7 +176,6 @@
             <button class="btn btn-danger btn-small" onclick="logout()">🚪 لاگ آؤٹ</button>
         </div>
     </div>
-
     <div class="tabs" id="mainTabs">
         <button class="tab active" onclick="showTab('dashboard')">📊 ڈیش بورڈ</button>
         <button class="tab" onclick="showTab('scan')">📷 اسکین</button>
@@ -541,62 +491,18 @@
 <div class="notification" id="notification"></div>
 
 <script>
-// ==================== سپر ایڈمن کنفیگریشن (ہڈن) ====================
-const SUPER_ADMIN = {
-    username: 'superadmin',
-    password: 'Admin@2024!',  // ← یہاں اپنا پاس ورڈ تبدیل کریں
-    name: 'سپر ایڈمن',
-    role: 'owner'
-};
-
-// ==================== گلوبل ویری ایبلز ====================
+// ==================== گلوبل ویری ایبلز (کلاؤڈ سرور ورژن) ====================
 let currentUser = null;
 let scanner = null;
 let editingId = null;
-let selectedRole = 'account_owner';
-let adminClickCount = 0;
-let adminClickTimer = null;
 
-// ڈیٹا
+// کلاؤڈ ڈیٹا کے لیے لوکل اریے (Arrays)
 let products = [];
 let sales = [];
 let activities = [];
 
-// ==================== سپر ایڈمن ٹرigger ====================
-function handleAdminTrigger() {
-    adminClickCount++;
-    if (adminClickTimer) clearTimeout(adminClickTimer);
-    adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
-    if (adminClickCount >= 5) {
-        adminClickCount = 0;
-        document.getElementById('adminLoginModal').style.display = 'flex';
-        setTimeout(() => document.getElementById('adminPassword').focus(), 100);
-    }
-}
-
-function closeAdminModal() {
-    document.getElementById('adminLoginModal').style.display = 'none';
-    document.getElementById('adminPassword').value = '';
-}
-
-function adminLogin() {
-    const password = document.getElementById('adminPassword').value;
-    if (password === SUPER_ADMIN.password) {
-        currentUser = {
-            id: 'superadmin',
-            name: SUPER_ADMIN.name,
-            username: SUPER_ADMIN.username,
-            password: SUPER_ADMIN.password,
-            role: SUPER_ADMIN.role
-        };
-        closeAdminModal();
-        loadUserData();
-        showMainApp();
-        showNotification('👑 سپر ایڈمن لاگ ان کامیاب!');
-    } else {
-        showNotification('❌ غلط پاس ورڈ', 'error');
-    }
-}
+// نوٹ: سپر ایڈمن کا ہڈن لاگ ان لاجک اور اس کے تمام فنکشنز (handleAdminTrigger, adminLogin) 
+// یہاں سے مکمل طور پر اڑا دیے گئے ہیں کیونکہ اب سیکیورٹی اور لاگ ان فائر بیس کلاؤڈ سنبھال رہا ہے۔
 
 // ==================== کلاؤڈ لاگ ان / رجسٹر (فائر بیس ایڈیشن) ====================
 
@@ -1137,24 +1043,35 @@ function stopScanner() {
     }
 }
 
-// ==================== پراڈکٹس ====================
+// ==================== پراڈکٹس (کلاؤڈ سرور ورژن) ====================
+
+// 1. بارکوڈ اسکین ہونے پر ہینڈل کرنے کا فنکشن
 function handleScan(barcode) {
+    // کلاؤڈ لسٹ میں بارکوڈ چیک کریں
     const existing = products.find(p => p.barcode === barcode);
     
     if (existing) {
-        existing.quantity = (parseInt(existing.quantity) || 0) + 1;
-        existing.updatedAt = new Date().toISOString();
-        showNotification(`"${existing.name}" کی مقدار: ${existing.quantity}`);
-        addActivity('اسکین اپڈیٹ', `${existing.name} - نئی مقدار: ${existing.quantity}`);
+        // اگر پراڈکٹ پہلے سے ہے تو مقدار میں 1 کا اضافہ کریں
+        const newQty = (parseInt(existing.quantity) || 0) + 1;
+        
+        // فائر بیس پر ڈائریکٹ اپڈیٹ کریں
+        db.collection("products").doc(barcode).update({
+            quantity: newQty,
+            updatedAt: new Date().toISOString()
+        })
+        .then(() => {
+            showNotification(`"${existing.name}" کی مقدار کلاؤڈ پر اپڈیٹ ہو گئی: ${newQty}`);
+            addActivity('اسکین اپڈیٹ', `${existing.name} - نئی مقدار: ${newQty}`);
+            // کلاؤڈ سے تازہ ڈیٹا دوبارہ لائیں
+            fetchProductsFromCloud();
+        });
     } else {
+        // اگر نئی پراڈکٹ ہے تو فارم میں بارکوڈ ڈالیں
         document.getElementById('manualBarcode').value = barcode;
         document.getElementById('manualName').value = 'پراڈکٹ - ' + barcode.substring(0, 8);
         showNotification('📦 نیا بارکوڈ ملا! تفصیلات درج کریں');
         setTimeout(() => document.getElementById('manualName').focus(), 100);
     }
-    
-    saveUserData();
-    renderProducts();
     
     stopScanner();
     setTimeout(() => {
@@ -1164,6 +1081,7 @@ function handleScan(barcode) {
     }, 3000);
 }
 
+// 2. نئی پراڈکٹ شامل کرنے یا اسٹاک بڑھانے کا فنکشن
 function addProduct() {
     const barcode = document.getElementById('manualBarcode').value.trim();
     const name = document.getElementById('manualName').value.trim();
@@ -1188,16 +1106,29 @@ function addProduct() {
 
     const existing = products.find(p => p.barcode === barcode);
     
+    showNotification('⏳ کلاؤڈ پر ڈیٹا بھیجا جا رہا ہے...', 'warning');
+
     if (existing) {
-        existing.quantity = (parseInt(existing.quantity) || 0) + quantity;
-        existing.salePrice = salePrice;
-        if (isOwner) existing.costPrice = costPrice;
-        existing.updatedAt = new Date().toISOString();
-        showNotification(`✅ "${existing.name}" اپڈیٹ ہو گیا - کل: ${existing.quantity}`);
-        addActivity('اسٹاک بڑھایا', `${name} - نئی مقدار: ${existing.quantity}`);
+        // اگر پہلے سے موجود ہے تو کلاؤڈ پر اپڈیٹ کریں
+        const totalQty = (parseInt(existing.quantity) || 0) + quantity;
+        const updateData = {
+            quantity: totalQty,
+            salePrice: salePrice,
+            updatedAt: new Date().toISOString()
+        };
+        if (isOwner) updateData.costPrice = costPrice;
+
+        db.collection("products").doc(barcode).update(updateData)
+        .then(() => {
+            showNotification(`✅ "${existing.name}" کلاؤڈ پر اپڈیٹ ہو گیا - کل: ${totalQty}`);
+            addActivity('اسٹاک بڑھایا', `${name} - نئی مقدار: ${totalQty}`);
+            clearAddProductForm();
+            fetchProductsFromCloud(); // کلاؤڈ سے ریفریش کریں
+        });
     } else {
-        products.unshift({
-            id: 'prod_' + Date.now(),
+        // اگر بالکل نئی پراڈکٹ ہے تو فائر بیس میں نیا ڈاکومنٹ بنائیں
+        const newProduct = {
+            id: 'prod_' + Date.now(), // پچھلی آئی ڈی کا تسلسل برقرار رکھنے کے لیے
             barcode: barcode,
             name: name,
             category: category,
@@ -1206,14 +1137,24 @@ function addProduct() {
             salePrice: salePrice,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
-        });
-        showNotification('✅ نیا پراڈکٹ شامل ہو گیا!');
-        addActivity('نیا پراڈکٹ', `${name} - ${quantity} عدد - ₹${salePrice}`);
-    }
+        };
 
-    saveUserData();
-    renderProducts();
-    
+        db.collection("products").doc(barcode).set(newProduct)
+        .then(() => {
+            showNotification('✅ نیا پراڈکٹ کلاؤڈ پر شامل ہو گیا!');
+            addActivity('نیا پراڈکٹ', `${name} - ${quantity} عدد`);
+            clearAddProductForm();
+            fetchProductsFromCloud(); // کلاؤڈ سے ریفریش کریں
+        })
+        .catch(error => {
+            console.error("Firebase Error:", error);
+            showNotification('❌ کلاؤڈ پر سیو نہیں ہو سکا', 'error');
+        });
+    }
+}
+
+// فارم خالی کرنے کا ہیلپر فنکشن
+function clearAddProductForm() {
     document.getElementById('manualBarcode').value = '';
     document.getElementById('manualName').value = '';
     document.getElementById('manualQuantity').value = '1';
@@ -1222,6 +1163,7 @@ function addProduct() {
     document.getElementById('staffSalePrice').value = '';
 }
 
+// 3. پراڈکٹس کو اسکرین پر دکھانے کا فنکشن (رینڈر)
 function renderProducts() {
     const container = document.getElementById('productsTable');
     const searchTerm = (document.getElementById('searchProduct')?.value || '').toLowerCase();
@@ -1275,8 +1217,8 @@ function renderProducts() {
                 ${isOwner ? `<td style="color: #e94560; font-weight: bold;">₹${(p.costPrice || 0).toFixed(2)}</td>` : ''}
                 <td style="color: #28a745; font-weight: bold;">₹${(p.salePrice || 0).toFixed(2)}</td>
                 <td class="actions">
-                    <button class="btn btn-primary btn-small" onclick="editProduct('${p.id}')">✏️</button>
-                    <button class="btn btn-danger btn-small" onclick="deleteProduct('${p.id}')">🗑️</button>
+                    <button class="btn btn-primary btn-small" onclick="editProduct('${p.barcode}')">✏️</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteProduct('${p.barcode}')">🗑️</button>
                 </td>
             </tr>
         `;
@@ -1287,11 +1229,12 @@ function renderProducts() {
     updateDashboard();
 }
 
-function editProduct(id) {
-    const p = products.find(x => x.id === id);
+// 4. پراڈکٹ ترمیم کا ماڈل کھولنے کا فنکشن
+function editProduct(barcode) {
+    const p = products.find(x => x.barcode === barcode);
     if (!p) return;
 
-    editingId = id;
+    editingId = barcode; // اب ایڈیٹنگ آئی ڈی میں بارکوڈ محفوظ ہوگا
     document.getElementById('editName').value = p.name;
     document.getElementById('editBarcode').value = p.barcode;
     document.getElementById('editCategory').value = p.category;
@@ -1302,64 +1245,82 @@ function editProduct(id) {
     document.getElementById('editModal').style.display = 'flex';
 }
 
+// 5. ترمیم شدہ ڈیٹا کلاؤڈ پر سیو کرنے کا فنکشن
 function saveEdit() {
-    const p = products.find(x => x.id === editingId);
-    if (!p) return;
+    // اب ہم بارکوڈ (editingId) کی مدد سے پروڈکٹ کلاؤڈ پر اپڈیٹ کریں گے
+    if (!editingId) return;
 
-    p.name = document.getElementById('editName').value;
-    p.barcode = document.getElementById('editBarcode').value;
-    p.category = document.getElementById('editCategory').value;
-    p.quantity = parseInt(document.getElementById('editQuantity').value) || 0;
-    p.salePrice = parseFloat(document.getElementById('editSalePrice').value) || 0;
+    showNotification('⏳ تبدیلیاں کلاؤڈ پر بھیجی جا رہی ہیں...', 'warning');
+
+    const updateData = {
+        name: document.getElementById('editName').value,
+        barcode: document.getElementById('editBarcode').value,
+        category: document.getElementById('editCategory').value,
+        quantity: parseInt(document.getElementById('editQuantity').value) || 0,
+        salePrice: parseFloat(document.getElementById('editSalePrice').value) || 0,
+        updatedAt: new Date().toISOString()
+    };
     
     if (currentUser.role === 'owner' || currentUser.role === 'account_owner') {
-        p.costPrice = parseFloat(document.getElementById('editCostPrice').value) || 0;
+        updateData.costPrice = parseFloat(document.getElementById('editCostPrice').value) || 0;
     }
     
-    p.updatedAt = new Date().toISOString();
+    db.collection("products").doc(editingId).update(updateData)
+    .then(() => {
+        showNotification('💾 تبدیلیاں کلاؤڈ پر محفوظ ہو گئیں');
+        addActivity('پراڈکٹ ترمیم', updateData.name);
+        closeModal();
+        fetchProductsFromCloud(); // لائیو ریفریش کریں
+    })
+    .catch(error => {
+        showNotification('❌ ڈیٹا اپڈیٹ نہ ہو سکا', 'error');
+    });
+}
+
+// 6. پراڈکٹ کلاؤڈ سے حذف کرنے کا فنکشن
+function deleteProduct(barcode) {
+    if (!confirm('🗑️ کیا آپ واقعی یہ پراڈکٹ کلاؤڈ سے حذف کرنا چاہتے ہیں؟')) return;
     
-    saveUserData();
-    renderProducts();
-    closeModal();
-    showNotification('💾 تبدیلیاں محفوظ ہو گئیں');
-    addActivity('پراڈکٹ ترمیم', p.name);
+    const p = products.find(x => x.barcode === barcode);
+    if (!p) return;
+
+    db.collection("products").doc(barcode).delete()
+    .then(() => {
+        showNotification('🗑️ کلاؤڈ سے حذف ہو گیا');
+        addActivity('پراڈکٹ حذف', p.name);
+        fetchProductsFromCloud(); // لائیو ریفریش کریں
+    })
+    .catch(error => {
+        showNotification('❌ حذف کرنے میں مسئلہ آیا', 'error');
+    });
 }
 
-function deleteProduct(id) {
-    if (!confirm('🗑️ حذف کریں؟')) return;
-    const p = products.find(x => x.id === id);
-    products = products.filter(x => x.id !== id);
-    saveUserData();
-    renderProducts();
-    showNotification('🗑️ حذف ہو گیا');
-    if (p) addActivity('پراڈکٹ حذف', p.name);
-}
+/// ==================== سیلز (کلاؤڈ سرور ورژن) ====================
 
-function closeModal() {
-    document.getElementById('editModal').style.display = 'none';
-    editingId = null;
-}
-
-// ==================== سیلز ====================
+// 1. بارکوڈ کی مدد سے پروڈکٹ تلاش کرنا
 function findProductForSale() {
     const barcode = document.getElementById('saleBarcode').value.trim();
+    // کلاؤڈ سے لوڈ شدہ لسٹ میں پروڈکٹ تلاش کریں
     const p = products.find(x => x.barcode === barcode);
     
     if (p) {
         document.getElementById('saleProductName').value = p.name;
         document.getElementById('saleUnitPrice').value = p.salePrice || 0;
         calculateSaleTotal();
+        showNotification('✅ پراڈکٹ مل گیا');
     } else {
         showNotification('❌ پراڈکٹ نہیں ملا', 'error');
     }
 }
 
+// 2. کل قیمت معلوم کرنا
 function calculateSaleTotal() {
     const qty = parseInt(document.getElementById('saleQuantity').value) || 1;
     const price = parseFloat(document.getElementById('saleUnitPrice').value) || 0;
     document.getElementById('saleTotal').textContent = '₹' + (qty * price).toFixed(2);
 }
 
+// 3. سیل فائنل کرنے اور کلاؤڈ اپڈیٹ کرنے کا فنکشن
 function makeSale() {
     const barcode = document.getElementById('saleBarcode').value.trim();
     const qty = parseInt(document.getElementById('saleQuantity').value) || 1;
@@ -1370,43 +1331,86 @@ function makeSale() {
         return;
     }
     
-    if (p.quantity < qty) {
+    // لائیو اسٹاک چیک کرنا
+    if (parseInt(p.quantity) < qty) {
         showNotification('❌ اتنی مقدار دستیاب نہیں (دستیاب: ' + p.quantity + ')', 'error');
         return;
     }
 
-    p.quantity -= qty;
+    showNotification('⏳ سیل پروسیس ہو رہی ہے...', 'warning');
+
     const total = qty * (p.salePrice || 0);
+    const saleId = 'sale_' + Date.now();
     
-    sales.unshift({
-        id: 'sale_' + Date.now(),
-        productId: p.id,
+    // سیل کا ڈیٹا جو کلاؤڈ پر جائے گا
+    const saleData = {
+        id: saleId,
+        productId: p.id || barcode,
         productName: p.name,
         barcode: barcode,
         quantity: qty,
         unitPrice: p.salePrice || 0,
         total: total,
-        seller: currentUser.name,
+        seller: currentUser.username || currentUser.name || 'اسٹاف',
         sellerRole: currentUser.role,
         date: new Date().toISOString()
+    };
+
+    // 🔥 فائر بیس کلاؤڈ پر سیلز ریکارڈ ایڈ کرنا
+    db.collection("sales").doc(saleId).set(saleData)
+    .then(() => {
+        // 🔥 فائر بیس کلاؤڈ پر پروڈکٹ کا اسٹاک خودکار طریقے سے مائنس کرنا
+        // یہاں ہم firebase.firestore.FieldValue.increment استعمال کر رہے ہیں جو بالکل درست مائنس کرتا ہے
+        return db.collection("products").doc(barcode).update({
+            quantity: firebase.firestore.FieldValue.increment(-qty),
+            updatedAt: new Date().toISOString()
+        });
+    })
+    .then(() => {
+        showNotification(`💰 سیل مکمل! رقم: ₹${total.toFixed(2)}`);
+        addActivity('سیل', `${p.name} - ${qty} عدد - ₹${total.toFixed(2)}`);
+
+        // فارم خالی کرنا
+        document.getElementById('saleBarcode').value = '';
+        document.getElementById('saleProductName').value = '';
+        document.getElementById('saleQuantity').value = '1';
+        document.getElementById('saleUnitPrice').value = '';
+        document.getElementById('saleTotal').textContent = '₹0.00';
+
+        // کلاؤڈ سے تازہ ترین پراڈکٹس اور سیلز ہسٹری دوبارہ لوڈ کرنا تاکہ دونوں آلات پر لائیو ڈیٹا دکھے
+        fetchProductsFromCloud();
+        fetchSalesFromCloud();
+    })
+    .catch((error) => {
+        console.error("Sale Error:", error);
+        showNotification('❌ سیل محفوظ کرنے میں مسئلہ آیا!', 'error');
     });
-    
-    saveUserData();
-    renderProducts();
-    renderSales();
-    
-    document.getElementById('saleBarcode').value = '';
-    document.getElementById('saleProductName').value = '';
-    document.getElementById('saleQuantity').value = '1';
-    document.getElementById('saleUnitPrice').value = '';
-    document.getElementById('saleTotal').textContent = '₹0.00';
-    
-    showNotification(`💰 سیل مکمل! رقم: ₹${total.toFixed(2)}`);
-    addActivity('سیل', `${p.name} - ${qty} عدد - ₹${total.toFixed(2)}`);
 }
 
+// 4. کلاؤڈ سے سیلز ہسٹری لوڈ کرنے کا نیا فنکشن (جو ریفریش پر ڈیٹا اڑنے سے بچائے گا)
+function fetchSalesFromCloud() {
+    if (!currentUser) return;
+
+    // کلاؤڈ سے تازہ ترین 50 سیلز تاریخ کے حساب سے اٹھانا
+    db.collection("sales").orderBy("date", "desc").limit(50).get()
+    .then((querySnapshot) => {
+        sales = []; // پرانی لوکل لسٹ خالی کر کے کلاؤڈ کا ڈیٹا بھریں
+        querySnapshot.forEach((doc) => {
+            sales.push(doc.data());
+        });
+        
+        // ٹیبل رینڈر کرنا
+        renderSales();
+    })
+    .catch((error) => {
+        console.error("Sales Fetch Error:", error);
+    });
+}
+
+// 5. سیلز ہسٹری کو اسکرین پر دکھانا
 function renderSales() {
     const container = document.getElementById('salesHistory');
+    if (!container) return;
     
     if (sales.length === 0) {
         container.innerHTML = '<div class="empty-state">کوئی سیل ریکارڈ نہیں</div>';
@@ -1427,10 +1431,13 @@ function renderSales() {
             <tbody>
     `;
 
-    sales.slice(0, 50).forEach(s => {
+    sales.forEach(s => {
+        // تاریخ کو درست فارمیٹ میں دکھانا
+        let saleDate = s.date ? new Date(s.date).toLocaleString('ur-PK') : 'N/A';
+        
         html += `
             <tr>
-                <td style="font-size: 12px;">${new Date(s.date).toLocaleString('ur-PK')}</td>
+                <td style="font-size: 12px;">${saleDate}</td>
                 <td style="font-weight: 600;">${s.productName}</td>
                 <td>${s.quantity}</td>
                 <td style="color: #28a745; font-weight: bold;">₹${s.total?.toFixed(2) || 0}</td>
@@ -1570,48 +1577,6 @@ function exportData(format) {
         showNotification('📄 CSV ڈاؤنلوڈ ہو گیا');
     }
 }
-
-// ==================== گوگل شیٹس ====================
-function syncToGoogleSheets() {
-    const status = document.getElementById('syncStatus');
-    status.textContent = '🔄 ہم آہنگ ہو رہا ہے...';
-    status.className = 'sync-status syncing';
-    
-    setTimeout(() => {
-        status.textContent = '✅ ہم آہنگ';
-        status.className = 'sync-status';
-    }, 1000);
-}
-
-function saveSheetSettings() {
-    const sheetId = document.getElementById('sheetId').value.trim();
-    if (sheetId) {
-        localStorage.setItem('google_sheet_id', sheetId);
-        showNotification('💾 گوگل شیٹ سیٹنگز محفوظ ہو گئیں');
-    }
-}
-
-function syncNow() {
-    syncToGoogleSheets();
-    showNotification('🔄 ہم آہنگی مکمل');
-}
-
-function clearAllData() {
-    if (!confirm('⚠️ تمام ڈیٹا حذف کریں؟ یہ واپس نہیں آئے گا!')) return;
-    
-    const targetId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
-    const prefix = targetId + '_';
-    localStorage.removeItem(prefix + 'products');
-    localStorage.removeItem(prefix + 'sales');
-    localStorage.removeItem(prefix + 'activities');
-    
-    products = []; sales = []; activities = [];
-    saveUserData();
-    renderProducts();
-    renderSales();
-    updateDashboard();
-    showNotification('🗑️ تمام ڈیٹا حذف ہو گیا');
-}
 // ============================================================================
 //               فائر بیس کلاؤڈ کنکشن، رجسٹریشن اور گوگل لاگ ان سسٹم
 // ============================================================================
@@ -1648,6 +1613,42 @@ function showNotification(message, type = 'success') {
         notif.style.display = 'none';
     }, 3000);
 }
+// ==================== لائیو کلاؤڈ ڈیٹا لوڈر اور لاگ ان چیکر ====================
+
+// فائر بیس کا لائیو سیشن لسنر (جب بھی پیج ریفریش ہوگا یا کوئی لاگ ان کرے گا، یہ خود چلے گا)
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        // صارف لاگ ان ہو چکا ہے، اس کا ڈیٹا سیٹ کریں
+        // نوٹ: اگر آپ کا اپنا یوزر رول کا لاجک ہے تو وہ یہاں اوور رائیڈ ہو جائے گا
+        currentUser = {
+            uid: user.uid,
+            email: user.email,
+            username: user.displayName || user.email.split('@')[0],
+            role: localStorage.getItem('user_role') || 'account_owner' // عارضی رول (جب تک آپ کا رول سسٹم لوڈ نہ ہو)
+        };
+
+        console.log("👋 صارف کامیابی سے کلاؤڈ پر لاگ ان ہے:", currentUser.username);
+        showNotification('🚀 کلاؤڈ سرور سے لائیو انوینٹری اور سیلز لوڈ ہو رہی ہیں...', 'warning');
+
+        // 🔥 یہاں ہم ان دونوں فنکشنز کو کال کر رہے ہیں تاکہ ڈیٹا کلاؤڈ سے آ جائے
+        if (typeof fetchProductsFromCloud === 'function') {
+            fetchProductsFromCloud();
+        }
+        if (typeof fetchSalesFromCloud === 'function') {
+            fetchSalesFromCloud();
+        }
+
+    } else {
+        // اگر کوئی لاگ ان نہیں ہے تو ایپ کو واپس لاگ ان اسکرین پر بھیجیں
+        currentUser = null;
+        console.log("❌ کوئی صارف لاگ ان نہیں ہے۔");
+        
+        // یہاں آپ کا پرانا لاگ ان اسکرین دکھانے کا لاجک آئے گا، مثلاً:
+        // document.getElementById('loginScreen').style.display = 'flex';
+        // document.getElementById('appScreen').style.display = 'none';
+    }
+});
+/// ==================== گوگل لاگ ان اور رجسٹریشن (کلاؤڈ سنکرونائزڈ ورژن) ====================
 
 // ۲. جی میل (Google) سے لاگ ان اور سائن اپ کرنے کا فنکشن
 function loginWithGoogle() {
@@ -1664,7 +1665,7 @@ function loginWithGoogle() {
             fullName: user.displayName,
             username: userEmail,
             email: userEmail,
-            role: 'owner',
+            role: 'account_owner', // رول کا فائر بیس اسٹینڈرڈ نام
             photoURL: user.photoURL,
             lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -1676,9 +1677,12 @@ function loginWithGoogle() {
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             showNotification(`🚀 خوش آمدید، ${user.displayName}!`);
             
-            // لاگ ان سیشن بحال ہونے کے بعد مین ڈیش بورڈ کھولیں
-            if (typeof showMainApp === 'function') { showMainApp(); }
-            else { location.reload(); } // بیک اپ حل
+            // لاگ ان اسکرینز چھپائیں اور مین ایپ دکھائیں
+            hideAuthScreens();
+
+            // 🔥 کلاؤڈ سے انوینٹری اور سیلز کا لائیو ڈیٹا فوراً لوڈ کریں
+            if (typeof fetchProductsFromCloud === 'function') { fetchProductsFromCloud(); }
+            if (typeof fetchSalesFromCloud === 'function') { fetchSalesFromCloud(); }
         })
         .catch((err) => {
             console.error(err);
@@ -1725,7 +1729,7 @@ function registerOwner(event) {
                 fullName: fullName,
                 username: username,
                 password: password,
-                role: 'owner',
+                role: 'account_owner',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
@@ -1742,32 +1746,50 @@ function registerOwner(event) {
     .catch(() => showNotification('❌ سرور کنکشن ایرر!', 'error'));
 }
 
-// ۴. پیج ریفریش ہونے پر سیشن برقرار رکھنے کا مستقل حل
+// ہیلپر فنکشن: لاگ ان اسکرینز کو چھپانے کے لیے
+function hideAuthScreens() {
+    const loginModal = document.getElementById('loginModal') || document.getElementById('authContainer');
+    if (loginModal) loginModal.style.display = 'none';
+    
+    // اگر مین لاگ ان اسکرین کا کوئی اور ڈیو ہے
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+
+    const mainApp = document.getElementById('mainApp') || document.getElementById('appScreen');
+    if (mainApp) {
+        mainApp.style.display = 'block';
+        mainApp.classList.remove('hidden');
+    }
+}
+
+// ۴. پیج ریفریش ہونے پر سیشن برقرار رکھنے اور ڈیٹا لوڈ کرنے کا مستقل حل
 document.addEventListener("DOMContentLoaded", function() {
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
         
         // لاگ ان اسکرینز چھپائیں اور مین ایپ دکھائیں
-        const loginModal = document.getElementById('loginModal') || document.getElementById('authContainer');
-        if (loginModal) loginModal.style.display = 'none';
-        
-        const mainApp = document.getElementById('mainApp');
-        if (mainApp) mainApp.classList.remove('hidden');
+        hideAuthScreens();
         
         console.log("سیشن خود بخود بحال ہو گیا:", currentUser.fullName);
+        showNotification('⏳ کلاؤڈ سے تازہ ترین اسٹاک لوڈ ہو رہا ہے...', 'warning');
+
+        // 🔥 ریفریش ہونے پر لائیو ڈیٹا کلاؤڈ سے کھینچیں تاکہ اسکرین خالی نہ رہے
+        setTimeout(() => {
+            if (typeof fetchProductsFromCloud === 'function') { fetchProductsFromCloud(); }
+            if (typeof fetchSalesFromCloud === 'function') { fetchSalesFromCloud(); }
+        }, 500); // آدھے سیکنڈ کا تاخیر (Delay) تاکہ فائر بیس کنکشن مستحکم ہو جائے
     }
 });
-
 // ۵. پرانا سیٹنگ ہینڈلر فال بیک
 function saveSheetSettings() {
     console.log('فائر بیس ایکٹیو ہے۔ پرانی سیٹنگز بائی پاس کر دی گئیں۔');
 }
-    // ==================== نوٹیفیکیشن کا فنکشن (جو مسنگ تھا) ====================
+
+// ==================== نوٹیفیکیشن کا فنکشن ====================
 function showNotification(message, type = 'success') {
     const notif = document.getElementById('notification');
     if (!notif) {
-        // اگر کوڈ میں نوٹیفیکیشن کا ڈیو (Div) نہ ملے تو الرٹ دکھا دے تاکہ کام نہ رکے
         alert(message);
         return;
     }
@@ -1781,23 +1803,55 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
     
-// انٹر کی ایونٹس
+// ==================== ایونٹ لسنرز (Event Listeners) ====================
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // ایڈ پراڈکٹ فارم کے لیے انٹر کی (Enter Key) ہینڈلرز
     document.getElementById('manualBarcode')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') document.getElementById('manualName').focus();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('manualName')?.focus();
+        }
     });
+    
     document.getElementById('manualName')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') addProduct();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // اگر اونر لاگ ان ہے تو خرید قیمت پر جائے، ورنہ فروخت قیمت پر
+            const costPriceInput = document.getElementById('costPrice');
+            if (costPriceInput && currentUser && (currentUser.role === 'owner' || currentUser.role === 'account_owner')) {
+                costPriceInput.focus();
+            } else {
+                const staffPrice = document.getElementById('staffSalePrice');
+                if (staffPrice) staffPrice.focus();
+                else document.getElementById('salePrice')?.focus();
+            }
+        }
     });
+
+    // سیلز فارم کے لیے انٹر کی (Enter Key) ہینڈلرز
     document.getElementById('saleBarcode')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') findProductForSale();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            findProductForSale();
+            // پراڈکٹ ملنے کے بعد مقدار والے فیلڈ پر فوکس لے جائیں
+            setTimeout(() => document.getElementById('saleQuantity')?.focus(), 200);
+        }
+    });
+
+    document.getElementById('saleQuantity')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            makeSale(); // مقدار لکھ کر انٹر دبانے سے سیل فائنل ہو جائے گی
+        }
     });
 });
 
-// مودال بند
+// ترمیم والا ماڈل باہر کلک کرنے پر بند کرنا
 document.getElementById('editModal')?.addEventListener('click', e => {
     if (e.target.id === 'editModal') closeModal();
 });
+
 </script>
 </body>
 </html>
