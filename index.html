@@ -473,7 +473,11 @@
         </button>
     </div>
 </div>
-
+// ==================== گوگل لاگ ان بٹن ====================
+<button type="button" onclick="loginWithGoogle()" style="background-color: #4285F4; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; width: 100%; margin-top: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 20px; margin-right: 10px; background: white; padding: 2px; border-radius: 2px;">
+    Google کے ساتھ لاگ ان / سائن اپ کریں
+</button>
 <div class="modal-overlay" id="editModal">
     <div class="modal-box">
         <div class="modal-header">
@@ -1373,7 +1377,10 @@ function clearAllData() {
     updateDashboard();
     showNotification('🗑️ تمام ڈیٹا حذف ہو گیا');
 }
-// ==================== فائر بیس کلاؤڈ کنکشن اور انیشلائزیشن ====================
+// ============================================================================
+//               فائر بیس کلاؤڈ کنکشن، رجسٹریشن اور گوگل لاگ ان سسٹم
+// ============================================================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyDhgSB1jFbeXRKtlV18c6tp6Z_m6zKHLms",
   authDomain: "mobile-inventory-store.firebaseapp.com",
@@ -1384,92 +1391,142 @@ const firebaseConfig = {
   measurementId: "G-E643SC87CW"
 };
 
-// فائر بیس شروع کریں
+// فائر بیس شروع کرنا
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
 
-// 1. پرانا گوگل شیٹ والا فنکشن (اب یہ فائر بیس پر ڈیٹا بھیجے گا)
-function syncToGoogleSheets() {
-    const status = document.getElementById('syncStatus');
-    if (status) {
-        status.textContent = '🔄 کلاؤڈ پر ہم آہنگ ہو رہا ہے...';
-        status.className = 'sync-status syncing';
+// ۱. نوٹیفیکیشن دکھانے کا فنکشن (جو مسنگ تھا)
+function showNotification(message, type = 'success') {
+    const notif = document.getElementById('notification');
+    if (!notif) {
+        alert(message);
+        return;
     }
-
-    // ایپ کے لوکل اسٹوریج سے ڈیٹا نکالنا
-    const targetId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
-    const prefix = targetId + '_';
+    notif.textContent = message;
+    notif.style.background = type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#28a745';
+    notif.style.color = type === 'warning' ? '#333' : 'white';
+    notif.style.display = 'block';
     
-    const localProducts = JSON.parse(localStorage.getItem(prefix + 'products')) || [];
-    const localSales = JSON.parse(localStorage.getItem(prefix + 'sales')) || [];
-    const localActivities = JSON.parse(localStorage.getItem(prefix + 'activities')) || [];
+    setTimeout(() => {
+        notif.style.display = 'none';
+    }, 3000);
+}
 
-    // فائر بیس کے فائر اسٹور ڈیٹا بیس میں سیدھا پش کرنا
-    db.collection("inventory_backups").doc(targetId).set({
-        ownerId: targetId,
-        products: localProducts,
-        sales: localSales,
-        activities: localActivities,
-        lastSynced: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true })
-    .then(() => {
-        if (status) {
-            status.textContent = '✅ ہم آہنگ';
-            status.className = 'sync-status';
-        }
-        showNotification('🚀 ڈیٹا فائر بیس کلاؤڈ پر محفوظ ہو گیا!');
+// ۲. جی میل (Google) سے لاگ ان اور سائن اپ کرنے کا فنکشن
+function loginWithGoogle() {
+    showNotification('⏳ جی میل سے رابطہ ہو رہا ہے...', 'warning');
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    firebase.auth().signInWithPopup(provider)
+    .then((result) => {
+        const user = result.user;
+        const userEmail = user.email.toLowerCase();
+        
+        const userData = {
+            id: user.uid,
+            fullName: user.displayName,
+            username: userEmail,
+            email: userEmail,
+            role: 'owner',
+            photoURL: user.photoURL,
+            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // کلاؤڈ ڈیٹا بیس میں یوزر سیو کرنا
+        db.collection("users").doc(user.uid).set(userData, { merge: true })
+        .then(() => {
+            currentUser = userData;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            showNotification(`🚀 خوش آمدید، ${user.displayName}!`);
+            
+            // لاگ ان سیشن بحال ہونے کے بعد مین ڈیش بورڈ کھولیں
+            if (typeof showMainApp === 'function') { showMainApp(); }
+            else { location.reload(); } // بیک اپ حل
+        })
+        .catch((err) => {
+            console.error(err);
+            showNotification('❌ ڈیٹا بیس ایرر!', 'error');
+        });
     })
-    .catch((error) => {
-        console.error("Firebase Error: ", error);
-        if (status) {
-            status.textContent = '❌ خرابی آئی';
-            status.className = 'sync-status';
-        }
-        showNotification('❌ بیک اپ فیل: انٹرنیٹ یا رولز چیک کریں', 'error');
+    .catch((err) => {
+        console.error(err);
+        showNotification('❌ گوگل لاگ ان کینسل یا فیل ہو گیا!', 'error');
     });
 }
 
-// 2. مین سنک بٹن کا فنکشن (جب آپ Sync Now دبائیں گے تو یہ چلے گا)
-function syncNow() {
-    syncToGoogleSheets();
-}
+// ۳. مینوئل یوزر رجسٹریشن (فائر بیس کلاؤڈ پر منتقل)
+function registerOwner(event) {
+    if (event) event.preventDefault();
 
-// 3. پرانی سیٹنگز کو خالی چھوڑ دیں تاکہ ایرر نہ آئے
-function saveSheetSettings() {
-    showNotification('💾 سیٹنگز اب کلاؤڈ پر آٹو مینیجڈ ہیں');
-}
+    const fullNameInput = document.getElementById('ownerFullName') || document.getElementById('regFullName');
+    const usernameInput = document.getElementById('ownerUsername') || document.getElementById('regUsername');
+    const passwordInput = document.getElementById('ownerPassword') || document.getElementById('regPassword');
 
-// 4. کلاؤڈ سے پرانا ڈیٹا واپس موبائل ایپ میں لوڈ کرنے کا فنکشن
-async function loadFromFirebase() {
-    if (!confirm('⚠️ کیا آپ کلاؤڈ سے پرانا ڈیٹا لوڈ کرنا چاہتے ہیں؟ موجودہ غیر محفوظ شدہ ڈیٹا بدل جائے گا!')) return;
-    
-    const targetId = (currentUser.role === 'manager' || currentUser.role === 'salesman') ? currentUser.ownerId : currentUser.id;
-    const prefix = targetId + '_';
-
-    try {
-        const doc = await db.collection("inventory_backups").doc(targetId).get();
-        if (doc.exists) {
-            const cloudData = doc.data();
-            localStorage.setItem(prefix + 'products', JSON.stringify(cloudData.products || []));
-            localStorage.setItem(prefix + 'sales', JSON.stringify(cloudData.sales || []));
-            localStorage.setItem(prefix + 'activities', JSON.stringify(cloudData.activities || []));
-            
-            products = cloudData.products || [];
-            sales = cloudData.sales || [];
-            activities = cloudData.activities || [];
-
-            renderProducts();
-            renderSales();
-            updateDashboard();
-            showNotification('📥 کلاؤڈ بیک اپ کامیابی سے بحال ہو گیا!');
-        } else {
-            showNotification('⚠️ کلاؤڈ پر کوئی ڈیٹا نہیں ملا', 'warning');
-        }
-    } catch (error) {
-        showNotification('❌ ڈیٹا لوڈ کرنے میں ناکامی', 'error');
+    if (!fullNameInput || !usernameInput || !passwordInput) {
+        showNotification('❌ فارم کے فیلڈز نہیں مل سکے!', 'error');
+        return;
     }
+
+    const fullName = fullNameInput.value.trim();
+    const username = usernameInput.value.trim().toLowerCase();
+    const password = passwordInput.value;
+
+    if (!fullName || !username || !password) {
+        showNotification('⚠️ تمام فیلڈز پر کرنا لازمی ہیں!', 'warning');
+        return;
+    }
+
+    showNotification('⏳ کلاؤڈ پر اکاؤنٹ بن رہا ہے...', 'warning');
+
+    db.collection("users").doc(username).get()
+    .then((doc) => {
+        if (doc.exists) {
+            showNotification('❌ یہ صارف نام (Username) پہلے سے موجود ہے!', 'error');
+        } else {
+            const newUser = {
+                id: username,
+                fullName: fullName,
+                username: username,
+                password: password,
+                role: 'owner',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection("users").doc(username).set(newUser)
+            .then(() => {
+                showNotification('🚀 اکاؤنٹ کامیابی سے بن گیا! اب لاگ ان کریں');
+                fullNameInput.value = ''; usernameInput.value = ''; passwordInput.value = '';
+                const modal = document.getElementById('ownerRegisterModal');
+                if (modal) modal.style.display = 'none';
+            })
+            .catch(() => showNotification('❌ کلاؤڈ سیونگ فیل!', 'error'));
+        }
+    })
+    .catch(() => showNotification('❌ سرور کنکشن ایرر!', 'error'));
+}
+
+// ۴. پیج ریفریش ہونے پر سیشن برقرار رکھنے کا مستقل حل
+document.addEventListener("DOMContentLoaded", function() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        
+        // لاگ ان اسکرینز چھپائیں اور مین ایپ دکھائیں
+        const loginModal = document.getElementById('loginModal') || document.getElementById('authContainer');
+        if (loginModal) loginModal.style.display = 'none';
+        
+        const mainApp = document.getElementById('mainApp');
+        if (mainApp) mainApp.classList.remove('hidden');
+        
+        console.log("سیشن خود بخود بحال ہو گیا:", currentUser.fullName);
+    }
+});
+
+// ۵. پرانا سیٹنگ ہینڈلر فال بیک
+function saveSheetSettings() {
+    console.log('فائر بیس ایکٹیو ہے۔ پرانی سیٹنگز بائی پاس کر دی گئیں۔');
 }
     // ==================== نوٹیفیکیشن کا فنکشن (جو مسنگ تھا) ====================
 function showNotification(message, type = 'success') {
